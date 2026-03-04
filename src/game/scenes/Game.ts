@@ -286,6 +286,10 @@ export class Game extends Scene {
       .setDepth(5)
       .setVisible(false);
 
+    this.input.on("pointerup", () => {
+      this.cursor.setVisible(false);
+    });
+
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
       const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
       const tileX = Math.floor(world.x / this.TILE);
