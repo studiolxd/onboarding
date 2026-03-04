@@ -156,9 +156,23 @@ export class Game extends Scene {
       return ["¡Hola de nuevo, {name}!", "¿Quieres que te presente a alguien?"];
     }, undefined, () => {
       if (!this.teamWelcomeDone) return undefined;
+
+      // Filtrar miembros que ya están presentes en el mapa
+      const available = this.teamConfig
+        .filter((c) => !this.npcs.has(c.id))
+        .map((c) => c.id.charAt(0).toUpperCase() + c.id.slice(1));
+
+      if (available.length === 0) return undefined;
+
+      const options = available.length === this.teamConfig.length
+        ? ["Todo el equipo", ...available]
+        : available.length > 1
+          ? ["Todos los disponibles", ...available]
+          : available;
+
       return {
         question: "¿A quién quieres conocer?",
-        options: ["Todo el equipo", "Nuria", "Serena", "Suvi", "Diego"],
+        options,
       };
     });
 
@@ -668,6 +682,40 @@ export class Game extends Scene {
     });
   }
 
+  private spawnTeamFiltered(ids: string[]) {
+    const ncp1 = this.npcs.get("ncp1");
+    const baseX = ncp1 ? ncp1.tileX : 12;
+    const baseY = ncp1 ? ncp1.tileY : 16;
+
+    const cam = this.cameras.main;
+    const visibleRight = cam.midPoint.x + this.scale.width / (2 * this.ZOOM);
+    const spawnX = Math.min(
+      Math.ceil(visibleRight / this.TILE) + 2,
+      this.map.width - 1
+    );
+
+    const configs = this.teamConfig.filter((c) => ids.includes(c.id));
+    configs.forEach((cfg, i) => {
+      const destX = baseX + cfg.offsetX;
+      const destY = baseY + cfg.offsetY;
+      const spawnY = baseY - 1 + i;
+
+      const npc = this.spawnNpcAt(cfg.id, "player-down", spawnX, spawnY, cfg.messages);
+
+      this.time.delayedCall(i * 300, () => {
+        const path = this.findPathForNpc(spawnX, spawnY, destX, destY, npc);
+        if (path.length > 0) {
+          this.walkNpcAlongPath(npc, path, () => {
+            npc.walking = false;
+          });
+        } else {
+          this.teleportNpc(npc, destX, destY);
+          npc.walking = false;
+        }
+      });
+    });
+  }
+
   private dismissTeam() {
     if (this.teamDismissed) return;
     this.teamDismissed = true;
@@ -754,12 +802,21 @@ export class Game extends Scene {
     // Cancelar timeout anterior si existe
     this.cancelRespawnTimeout();
 
-    if (choice === "Todo el equipo") {
+    if (choice === "Todo el equipo" || choice === "Todos los disponibles") {
+      const toSpawn = this.teamNpcIds.filter((id) => !this.npcs.has(id));
+      const alreadyPresent = this.teamNpcIds.filter((id) => this.npcs.has(id));
+      if (toSpawn.length === 0 && alreadyPresent.length === 0) return;
+
       this.teamSpawned = false;
-      this.respawnedIds = [...this.teamNpcIds];
-      this.spawnTeam();
+      // Incluir todos (nuevos + ya presentes) en el timeout
+      this.respawnedIds = [...toSpawn, ...alreadyPresent];
+      this.singleTeamRespawn = null;
+      if (toSpawn.length > 0) {
+        this.spawnTeamFiltered(toSpawn);
+      }
     } else {
       const name = choice.toLowerCase();
+      if (this.npcs.has(name)) return; // ya está presente
       this.singleTeamRespawn = name;
       this.respawnedIds = [name];
       this.spawnSingleTeamMember(name);
@@ -787,9 +844,9 @@ export class Game extends Scene {
       this.map.width - 1
     );
 
-    // Solo dismiss los que aún no han sido hablados
-    const remaining = this.respawnedIds.filter((id) => !this.talkedTo.has(id));
-    remaining.forEach((id, i) => {
+    // Dismiss los que quedan en respawnedIds (los no hablados en esta re-invocación)
+    const toDismiss = [...this.respawnedIds];
+    toDismiss.forEach((id, i) => {
       const npc = this.npcs.get(id);
       if (!npc) return;
 
