@@ -750,13 +750,11 @@ export class Game extends Scene {
 
     if (choice === "Todo el equipo") {
       this.teamSpawned = false;
-      this.teamNpcIds.forEach((id) => this.talkedTo.delete(id));
       this.respawnedIds = [...this.teamNpcIds];
       this.spawnTeam();
     } else {
       const name = choice.toLowerCase();
       this.singleTeamRespawn = name;
-      this.talkedTo.delete(name);
       this.respawnedIds = [name];
       this.spawnSingleTeamMember(name);
     }
@@ -1261,7 +1259,7 @@ export class Game extends Scene {
     if (closedNpcId === "ncp1" && !this.teamSpawned) {
       this.spawnTeam();
     }
-    if (closedNpcId && this.teamNpcIds.includes(closedNpcId) && this.allTeamTalkedTo()) {
+    if (closedNpcId && this.teamNpcIds.includes(closedNpcId) && !this.teamWelcomeDone && this.allTeamTalkedTo()) {
       this.dismissTeam();
       this.triggerTeamWelcome();
     }
@@ -1272,20 +1270,20 @@ export class Game extends Scene {
       this.lastNpc1Choice = null;
     }
 
-    // Dismiss individual: si fue re-invocación individual, quitar al hablar
-    if (closedNpcId && closedNpcId === this.singleTeamRespawn) {
-      this.cancelRespawnTimeout();
-      this.dismissSingleTeamMember(closedNpcId);
-      this.singleTeamRespawn = null;
-      this.respawnedIds = [];
-    }
-
-    // Re-spawn equipo completo: si ya hablaste con todos los re-invocados, cancelar timeout
+    // Re-spawn: marcar como hablado en esta sesión y gestionar dismiss
     if (closedNpcId && this.respawnedIds.length > 0 && this.respawnedIds.includes(closedNpcId)) {
-      const allRespawnedTalked = this.respawnedIds.every((id) => this.talkedTo.has(id));
-      if (allRespawnedTalked) {
+      // Quitar de la lista de pendientes
+      this.respawnedIds = this.respawnedIds.filter((id) => id !== closedNpcId);
+
+      if (this.singleTeamRespawn === closedNpcId) {
+        // Era invocación individual: dismiss inmediato
         this.cancelRespawnTimeout();
-        this.respawnedIds = [];
+        this.dismissSingleTeamMember(closedNpcId);
+        this.singleTeamRespawn = null;
+      } else if (this.respawnedIds.length === 0) {
+        // Equipo completo: todos hablados, dismiss
+        this.cancelRespawnTimeout();
+        this.dismissTeam();
       }
     }
   }
