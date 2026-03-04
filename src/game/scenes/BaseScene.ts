@@ -272,6 +272,23 @@ export abstract class BaseScene extends Scene {
 
     // Cleanup on scene shutdown
     this.events.on("shutdown", () => {
+      // Reset dialog state
+      this.isTalking = false;
+      this.talkQueue = [];
+      this.talkIndex = 0;
+      this.isChoosing = false;
+      this.activeChoice = null;
+      this.currentNpcId = null;
+      this.isMoving = false;
+      this.movePath = [];
+      this.pendingNpc = null;
+
+      // Hide React overlays
+      this.input.keyboard!.enableGlobalCapture();
+      EventBus.emit("hide-choice-input");
+      EventBus.emit("hide-name-input");
+
+      // Remove EventBus listeners
       EventBus.off("learner-name");
       EventBus.off("restore-position");
       EventBus.off("restore-role");
@@ -280,6 +297,7 @@ export abstract class BaseScene extends Scene {
       EventBus.off("restore-progress");
       EventBus.off("navigate-to-scene");
       EventBus.off("choice-input-confirmed");
+      EventBus.off("name-input-confirmed");
     });
   }
 
