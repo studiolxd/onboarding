@@ -1,13 +1,20 @@
 import { EventBus } from "../EventBus";
 import { Scene } from "phaser";
 
+interface NpcChoice {
+  question: string;
+  options: string[];
+}
+
 interface NpcData {
   id: string;
   sprite: Phaser.GameObjects.Sprite;
   tileX: number;
   tileY: number;
   tiles: { x: number; y: number }[];
-  messages: string[];
+  messages: string[] | (() => string[]);
+  choice?: NpcChoice | (() => NpcChoice | undefined);
+  walking?: boolean;
 }
 
 export class Game extends Scene {
@@ -28,8 +35,17 @@ export class Game extends Scene {
 
   // SCORM
   private learnerName = "";
+  private learnerRole = "";
   private currentNpcId: string | null = null;
   private talkedTo = new Set<string>();
+
+  // Equipo
+  private teamSpawned = false;
+  private teamDismissed = false;
+  private teamWelcomeDone = false;
+  private readonly teamNpcIds = ["nuria", "serena", "suvi", "diego"];
+  private lastNpc1Choice: string | null = null;
+  private singleTeamRespawn: string | null = null;
 
   // Diálogo
   private isTalking = false;
@@ -40,6 +56,12 @@ export class Game extends Scene {
   private dialogHint?: Phaser.GameObjects.Text;
   private keyEnter!: Phaser.Input.Keyboard.Key;
   private keySpace!: Phaser.Input.Keyboard.Key;
+
+  // Choices
+  private isChoosing = false;
+  private choiceIndex = 0;
+  private choiceTexts: Phaser.GameObjects.Text[] = [];
+  private activeChoice: NpcChoice | null = null;
 
   private readonly TILE = 16;
   private readonly MOVE_MS = 150;
@@ -116,17 +138,94 @@ export class Game extends Scene {
     this.player.setDepth(10);
 
     // --- NPCs ---
-    this.spawnNpc(objLayer, "ncp1", "npc1-down", [
-      "Hola, {name}.",
-      "Bienvenido al mundo de Studio LXD.",
-      "Explora el mapa y habla con todos.",
-    ]);
+    this.spawnNpc(objLayer, "ncp1", "npc1-down", () => {
+      if (!this.teamWelcomeDone) {
+        return [
+          "Hola, {name}.",
+          "Bienvenido al mundo de Studio LXD.",
+          "Voy a presentarte al equipo. ¡Espera un momento!",
+        ];
+      }
+      return ["¡Hola de nuevo, {name}!", "¿Quieres que te presente a alguien?"];
+    }, undefined, () => {
+      if (!this.teamWelcomeDone) return undefined;
+      return {
+        question: "¿A quién quieres conocer?",
+        options: ["Todo el equipo", "Nuria", "Serena", "Suvi", "Diego"],
+      };
+    });
 
-    this.spawnNpc(objLayer, "ncp2", "npc1-down", [
-      "¡Ey, {name}! ¿Primera vez por aquí?",
-      "Este lugar esconde muchos secretos.",
-      "Sigue explorando y lo descubrirás.",
-    ], { tileX: 17, tileY: 20 });
+    this.spawnNpc(objLayer, "ncp2", "npc1-down", () => {
+      if (!this.talkedTo.has("ncp1")) {
+        return [
+          "¡Ey, {name}!",
+          "Ve a hablar con el de ahí arriba.",
+          "Te va a presentar al equipo.",
+        ];
+      }
+      if (!this.allTeamTalkedTo()) {
+        return [
+          "¡Saluda al equipo!",
+          "Están esperando para conocerte.",
+        ];
+      }
+      if (this.learnerRole) {
+        return [
+          `¡Ey, {name}! Tu rol actual es: ${this.learnerRole}.`,
+          "¿Te has equivocado? Puedes cambiarlo.",
+        ];
+      }
+      return [
+        "¡Ey, {name}! Ya conoces a todos.",
+        "Antes de seguir, necesito saber algo...",
+      ];
+    }, { tileX: 17, tileY: 20 }, () => {
+      if (!this.allTeamTalkedTo()) return undefined;
+      if (this.learnerRole) {
+        return {
+          question: "¿Quieres cambiar tu rol? Perderás tu badge actual.",
+          options: ["Mantener rol actual", "Diseñador instruccional", "Diseñador gráfico", "Programador"],
+        };
+      }
+      return {
+        question: "¿Cuál es tu rol en la empresa?",
+        options: ["Diseñador instruccional", "Diseñador gráfico", "Programador"],
+      };
+    });
+
+    const toolsByRole: Record<string, string[]> = {
+      "Diseñador instruccional": [
+        "Tus herramientas principales serán:",
+        "- Articulate Storyline para e-learning",
+        "- Miro para mapear experiencias",
+        "- Notion para documentar diseños",
+      ],
+      "Diseñador gráfico": [
+        "Tus herramientas principales serán:",
+        "- Figma para diseño de interfaces",
+        "- After Effects para animaciones",
+        "- Illustrator para assets vectoriales",
+      ],
+      "Programador": [
+        "Tus herramientas principales serán:",
+        "- VS Code como editor principal",
+        "- GitHub para control de versiones",
+        "- Phaser para desarrollo de juegos",
+      ],
+    };
+
+    this.spawnNpc(objLayer, "ncp3", "npc1-down", () => {
+      if (!this.learnerRole) {
+        return [
+          "Hmm, aún no sé cuál es tu rol.",
+          "Habla primero con mi compañero de allá arriba.",
+        ];
+      }
+      return [
+        `¡Así que eres ${this.learnerRole}! Genial.`,
+        ...(toolsByRole[this.learnerRole] ?? ["¡Buena suerte en tu camino!"]),
+      ];
+    }, { tileX: 22, tileY: 24 });
 
     // Cámara
     this.updateCamera(this.scale.width, this.scale.height);
@@ -236,8 +335,11 @@ export class Game extends Scene {
       const y = pos.tileY * this.TILE + this.TILE / 2;
       this.player.setPosition(x, y);
     });
+    EventBus.on("restore-role", (rol: string) => {
+      this.learnerRole = rol;
+    });
 
-    this.createPlayerAnims();
+    this.createAnims();
     EventBus.emit("current-scene-ready", this);
 
     // Pedir datos SCORM ahora que los listeners están registrados
@@ -249,7 +351,23 @@ export class Game extends Scene {
 
     // --- Diálogo activo: bloquear movimiento ---
     if (this.isTalking) {
-      if (
+      if (this.isChoosing) {
+        if (Phaser.Input.Keyboard.JustDown(this.cursors.up!)) {
+          this.selectChoice(
+            (this.choiceIndex - 1 + this.activeChoice!.options.length) %
+              this.activeChoice!.options.length
+          );
+        } else if (Phaser.Input.Keyboard.JustDown(this.cursors.down!)) {
+          this.selectChoice(
+            (this.choiceIndex + 1) % this.activeChoice!.options.length
+          );
+        } else if (
+          Phaser.Input.Keyboard.JustDown(this.keyEnter) ||
+          Phaser.Input.Keyboard.JustDown(this.keySpace)
+        ) {
+          this.confirmChoice();
+        }
+      } else if (
         Phaser.Input.Keyboard.JustDown(this.keyEnter) ||
         Phaser.Input.Keyboard.JustDown(this.keySpace)
       ) {
@@ -373,8 +491,9 @@ export class Game extends Scene {
     objLayer: Phaser.Tilemaps.ObjectLayer | null,
     objectName: string,
     spriteKey: string,
-    fallbackMessages: string[],
-    fallbackPos?: { tileX: number; tileY: number }
+    fallbackMessages: string[] | (() => string[]),
+    fallbackPos?: { tileX: number; tileY: number },
+    choice?: NpcChoice | (() => NpcChoice | undefined)
   ) {
     const obj = objLayer?.objects.find((o) => o.name === objectName);
     if (!obj && !fallbackPos) return;
@@ -402,7 +521,7 @@ export class Game extends Scene {
     const raw = props?.find((p) => p.name === "messages")?.value as
       | string
       | undefined;
-    const messages = raw
+    const messages: string[] | (() => string[]) = raw
       ? raw
           .split("|")
           .map((s) => s.trim())
@@ -411,11 +530,43 @@ export class Game extends Scene {
 
     const tiles = [{ x: tileX, y: tileY }];
     this.blocked.add(this.tileKey(tileX, tileY));
-    this.npcs.set(objectName, { id: objectName, sprite, tileX, tileY, tiles, messages });
+    this.npcs.set(objectName, { id: objectName, sprite, tileX, tileY, tiles, messages, choice });
+  }
+
+  /** Crea un NPC directamente en una posición (para NPCs dinámicos del equipo) */
+  private spawnNpcAt(
+    id: string,
+    spriteKey: string,
+    tileX: number,
+    tileY: number,
+    messages: string[] | (() => string[])
+  ): NpcData {
+    const sprite = this.add.sprite(
+      tileX * this.TILE + this.TILE / 2,
+      tileY * this.TILE + this.TILE / 2,
+      spriteKey,
+      0
+    );
+    sprite.setScale(0.5);
+    sprite.setDepth(10);
+
+    const npc: NpcData = {
+      id,
+      sprite,
+      tileX,
+      tileY,
+      tiles: [{ x: tileX, y: tileY }],
+      messages,
+      walking: true,
+    };
+    this.blocked.add(this.tileKey(tileX, tileY));
+    this.npcs.set(id, npc);
+    return npc;
   }
 
   private getNpcAt(tileX: number, tileY: number): NpcData | null {
     for (const npc of this.npcs.values()) {
+      if (npc.walking) continue;
       if (npc.tiles.some((t) => t.x === tileX && t.y === tileY)) return npc;
     }
     return null;
@@ -457,9 +608,322 @@ export class Game extends Scene {
 
   private getAdjacentNpc(): NpcData | null {
     for (const npc of this.npcs.values()) {
+      if (npc.walking) continue;
       if (this.isAdjacentToNpc(npc)) return npc;
     }
     return null;
+  }
+
+  // ─── Equipo ───
+
+  private allTeamTalkedTo(): boolean {
+    return this.teamNpcIds.every((id) => this.talkedTo.has(id));
+  }
+
+  private spawnTeam() {
+    if (this.teamSpawned) return;
+    this.teamSpawned = true;
+
+    const ncp1 = this.npcs.get("ncp1");
+    const baseX = ncp1 ? ncp1.tileX : 12;
+    const baseY = ncp1 ? ncp1.tileY : 16;
+
+    // Spawn justo fuera del borde derecho de la cámara
+    const cam = this.cameras.main;
+    const visibleRight = cam.midPoint.x + this.scale.width / (2 * this.ZOOM);
+    const spawnX = Math.min(
+      Math.ceil(visibleRight / this.TILE) + 2,
+      this.map.width - 1
+    );
+
+    this.teamConfig.forEach((cfg, i) => {
+      const destX = baseX + cfg.offsetX;
+      const destY = baseY + cfg.offsetY;
+      const spawnY = baseY - 1 + i;
+
+      const npc = this.spawnNpcAt(cfg.id, "player-down", spawnX, spawnY, cfg.messages);
+
+      this.time.delayedCall(i * 300, () => {
+        const path = this.findPathForNpc(spawnX, spawnY, destX, destY, npc);
+        if (path.length > 0) {
+          this.walkNpcAlongPath(npc, path, () => {
+            npc.walking = false;
+          });
+        } else {
+          this.teleportNpc(npc, destX, destY);
+          npc.walking = false;
+        }
+      });
+    });
+  }
+
+  private dismissTeam() {
+    if (this.teamDismissed) return;
+    this.teamDismissed = true;
+
+    // Salir justo fuera del borde derecho de la cámara
+    const cam = this.cameras.main;
+    const visibleRight = cam.midPoint.x + this.scale.width / (2 * this.ZOOM);
+    const exitX = Math.min(
+      Math.ceil(visibleRight / this.TILE) + 2,
+      this.map.width - 1
+    );
+
+    this.teamNpcIds.forEach((id, i) => {
+      const npc = this.npcs.get(id);
+      if (!npc) return;
+
+      npc.walking = true;
+
+      this.time.delayedCall(i * 300, () => {
+        const exitY = npc.tileY;
+        const path = this.findPathForNpc(npc.tileX, npc.tileY, exitX, exitY, npc);
+        if (path.length > 0) {
+          this.walkNpcAlongPath(npc, path, () => {
+            this.removeNpc(npc);
+          });
+        } else {
+          this.removeNpc(npc);
+        }
+      });
+    });
+  }
+
+  private readonly teamConfig: {
+    id: string;
+    offsetX: number;
+    offsetY: number;
+    messages: string[];
+  }[] = [
+    {
+      id: "nuria",
+      offsetX: 2,
+      offsetY: -1,
+      messages: [
+        "¡Hola! Soy Nuria, diseñadora instruccional.",
+        "Diseño experiencias de aprendizaje que enganchan.",
+        "¡Encantada de conocerte, {name}!",
+      ],
+    },
+    {
+      id: "serena",
+      offsetX: 2,
+      offsetY: 1,
+      messages: [
+        "¡Hey! Soy Serena, también diseñadora instruccional.",
+        "Me encanta crear contenido interactivo.",
+        "¡Bienvenido/a al equipo!",
+      ],
+    },
+    {
+      id: "suvi",
+      offsetX: -2,
+      offsetY: -1,
+      messages: [
+        "¡Bienvenido/a! Soy Suvi, director y pedagogo.",
+        "Mi trabajo es que todo tenga sentido educativo.",
+        "Cualquier duda, aquí estoy.",
+      ],
+    },
+    {
+      id: "diego",
+      offsetX: -2,
+      offsetY: 1,
+      messages: [
+        "¡Qué tal! Soy Diego, socio y responsable de tecnología.",
+        "Yo me encargo de que todo funcione.",
+        "¡Cuenta conmigo para lo técnico!",
+      ],
+    },
+  ];
+
+  private respawnTeamMember(choice: string) {
+    this.teamDismissed = false;
+
+    if (choice === "Todo el equipo") {
+      this.teamSpawned = false;
+      // Reset talkedTo for team members so they can be talked to again
+      this.teamNpcIds.forEach((id) => this.talkedTo.delete(id));
+      this.spawnTeam();
+    } else {
+      const name = choice.toLowerCase();
+      this.singleTeamRespawn = name;
+      this.talkedTo.delete(name);
+      this.spawnSingleTeamMember(name);
+    }
+  }
+
+  private spawnSingleTeamMember(name: string) {
+    const cfg = this.teamConfig.find((c) => c.id === name);
+    if (!cfg) return;
+
+    const ncp1 = this.npcs.get("ncp1");
+    const baseX = ncp1 ? ncp1.tileX : 12;
+    const baseY = ncp1 ? ncp1.tileY : 16;
+
+    const destX = baseX + cfg.offsetX;
+    const destY = baseY + cfg.offsetY;
+
+    const cam = this.cameras.main;
+    const visibleRight = cam.midPoint.x + this.scale.width / (2 * this.ZOOM);
+    const spawnX = Math.min(
+      Math.ceil(visibleRight / this.TILE) + 2,
+      this.map.width - 1
+    );
+    const spawnY = baseY;
+
+    const npc = this.spawnNpcAt(cfg.id, "player-down", spawnX, spawnY, cfg.messages);
+
+    const path = this.findPathForNpc(spawnX, spawnY, destX, destY, npc);
+    if (path.length > 0) {
+      this.walkNpcAlongPath(npc, path, () => {
+        npc.walking = false;
+      });
+    } else {
+      this.teleportNpc(npc, destX, destY);
+      npc.walking = false;
+    }
+  }
+
+  private dismissSingleTeamMember(npcId: string) {
+    const npc = this.npcs.get(npcId);
+    if (!npc) return;
+
+    npc.walking = true;
+
+    const cam = this.cameras.main;
+    const visibleRight = cam.midPoint.x + this.scale.width / (2 * this.ZOOM);
+    const exitX = Math.min(
+      Math.ceil(visibleRight / this.TILE) + 2,
+      this.map.width - 1
+    );
+    const exitY = npc.tileY;
+
+    const path = this.findPathForNpc(npc.tileX, npc.tileY, exitX, exitY, npc);
+    if (path.length > 0) {
+      this.walkNpcAlongPath(npc, path, () => {
+        this.removeNpc(npc);
+      });
+    } else {
+      this.removeNpc(npc);
+    }
+  }
+
+  /** Solo desbloquea un tile si ningún otro NPC lo ocupa */
+  private safeUnblock(tileX: number, tileY: number, excludeId: string) {
+    const key = this.tileKey(tileX, tileY);
+    for (const other of this.npcs.values()) {
+      if (other.id === excludeId) continue;
+      if (other.tiles.some((t) => this.tileKey(t.x, t.y) === key)) return;
+    }
+    this.blocked.delete(key);
+  }
+
+  private removeNpc(npc: NpcData) {
+    this.npcs.delete(npc.id);
+    this.safeUnblock(npc.tileX, npc.tileY, npc.id);
+    npc.sprite.destroy();
+  }
+
+  private teleportNpc(npc: NpcData, tileX: number, tileY: number) {
+    this.safeUnblock(npc.tileX, npc.tileY, npc.id);
+    npc.tileX = tileX;
+    npc.tileY = tileY;
+    npc.tiles = [{ x: tileX, y: tileY }];
+    npc.sprite.setPosition(
+      tileX * this.TILE + this.TILE / 2,
+      tileY * this.TILE + this.TILE / 2
+    );
+    this.blocked.add(this.tileKey(tileX, tileY));
+  }
+
+  /** Pathfinding que ignora el tile actual del NPC que se mueve */
+  private findPathForNpc(
+    sx: number, sy: number,
+    ex: number, ey: number,
+    npc: NpcData
+  ): { x: number; y: number }[] {
+    // Temporalmente desbloquear el tile del NPC
+    const npcKey = this.tileKey(npc.tileX, npc.tileY);
+    this.blocked.delete(npcKey);
+    // También desbloquear destino si otro NPC lo ocupa temporalmente
+    const destKey = this.tileKey(ex, ey);
+    const destWasBlocked = this.blocked.has(destKey);
+    this.blocked.delete(destKey);
+
+    const path = this.findPath(sx, sy, ex, ey);
+
+    // Restaurar
+    this.blocked.add(npcKey);
+    if (destWasBlocked) this.blocked.add(destKey);
+
+    return path;
+  }
+
+  /** Mueve un NPC tile a tile a lo largo de un path */
+  private walkNpcAlongPath(
+    npc: NpcData,
+    path: { x: number; y: number }[],
+    onComplete?: () => void
+  ) {
+    if (path.length === 0) {
+      onComplete?.();
+      return;
+    }
+
+    const stepIndex = { value: 0 };
+
+    const walkStep = () => {
+      if (stepIndex.value >= path.length) {
+        npc.sprite.anims.stop();
+        onComplete?.();
+        return;
+      }
+
+      const target = path[stepIndex.value];
+      const dx = target.x - npc.tileX;
+      const dy = target.y - npc.tileY;
+
+      // Animación de dirección
+      if (dx < 0) {
+        npc.sprite.setFlipX(true);
+        npc.sprite.anims.play("npc-walk-left", true);
+      } else if (dx > 0) {
+        npc.sprite.setFlipX(false);
+        npc.sprite.anims.play("npc-walk-left", true);
+      } else if (dy < 0) {
+        npc.sprite.setFlipX(false);
+        npc.sprite.anims.play("npc-walk-up", true);
+      } else if (dy > 0) {
+        npc.sprite.setFlipX(false);
+        npc.sprite.anims.play("npc-walk-down", true);
+      }
+
+      // Desbloquear tile anterior (solo si no hay otro NPC), bloquear nuevo
+      this.safeUnblock(npc.tileX, npc.tileY, npc.id);
+      npc.tileX = target.x;
+      npc.tileY = target.y;
+      npc.tiles = [{ x: target.x, y: target.y }];
+      this.blocked.add(this.tileKey(target.x, target.y));
+
+      const destX = target.x * this.TILE + this.TILE / 2;
+      const destY = target.y * this.TILE + this.TILE / 2;
+
+      this.tweens.add({
+        targets: npc.sprite,
+        x: destX,
+        y: destY,
+        duration: this.MOVE_MS,
+        onComplete: () => {
+          npc.sprite.x = destX;
+          npc.sprite.y = destY;
+          stepIndex.value++;
+          walkStep();
+        },
+      });
+    };
+
+    walkStep();
   }
 
   // ─── Diálogo ───
@@ -469,7 +933,7 @@ export class Game extends Scene {
 
     this.isTalking = true;
     this.currentNpcId = npc.id;
-    this.talkQueue = npc.messages;
+    this.talkQueue = typeof npc.messages === "function" ? npc.messages() : npc.messages;
     this.talkIndex = 0;
     this.movePath = [];
     this.player.anims.stop();
@@ -538,19 +1002,130 @@ export class Game extends Scene {
   }
 
   private advanceDialog() {
+    if (this.isChoosing) {
+      this.confirmChoice();
+      return;
+    }
     this.talkIndex++;
     if (this.talkIndex >= this.talkQueue.length) {
-      this.closeDialog();
+      // Si hay choices pendientes, mostrarlas
+      const npc = this.currentNpcId ? this.npcs.get(this.currentNpcId) : null;
+      const choice = npc?.choice;
+      const resolvedChoice = typeof choice === "function" ? choice() : choice;
+      if (resolvedChoice) {
+        this.showChoices(resolvedChoice);
+      } else {
+        this.closeDialog();
+      }
     } else {
       this.showLine();
     }
   }
 
+  private showChoices(choice: NpcChoice) {
+    this.isChoosing = true;
+    this.activeChoice = choice;
+    this.choiceIndex = 0;
+
+    // Mostrar pregunta en el texto principal
+    this.dialogText?.setText(choice.question);
+    this.dialogHint?.setText("[↑↓] Elegir  [Enter] Confirmar");
+
+    // Crear textos de opciones
+    const z = this.ZOOM;
+    const baseY = this.dialogText
+      ? this.dialogText.y + 12
+      : 0;
+
+    this.choiceTexts = choice.options.map((opt, i) => {
+      const text = this.add
+        .text(this.dialogText!.x, baseY + i * 9, opt, {
+          fontFamily: "monospace",
+          fontSize: "6px",
+          color: "#cccccc",
+        })
+        .setResolution(z)
+        .setScrollFactor(0)
+        .setDepth(1001);
+      return text;
+    });
+
+    this.selectChoice(0);
+  }
+
+  private selectChoice(index: number) {
+    this.choiceIndex = index;
+    const opts = this.activeChoice!.options;
+    for (let i = 0; i < this.choiceTexts.length; i++) {
+      if (i === index) {
+        this.choiceTexts[i].setText(`> ${opts[i]}`);
+        this.choiceTexts[i].setColor("#ffffff");
+      } else {
+        this.choiceTexts[i].setText(`  ${opts[i]}`);
+        this.choiceTexts[i].setColor("#888888");
+      }
+    }
+  }
+
+  private confirmChoice() {
+    const choice = this.activeChoice!.options[this.choiceIndex];
+
+    // Limpiar UI de choices
+    this.choiceTexts.forEach((t) => t.destroy());
+    this.choiceTexts = [];
+    this.isChoosing = false;
+    this.activeChoice = null;
+
+    if (this.currentNpcId === "ncp1") {
+      // NPC1: guardar elección de re-presentación
+      this.lastNpc1Choice = choice;
+      this.closeDialog();
+      return;
+    }
+
+    if (this.currentNpcId === "ncp2") {
+      if (this.learnerRole && choice === "Mantener rol actual") {
+        // No cambiar nada
+        this.closeDialog();
+        return;
+      }
+
+      if (this.learnerRole) {
+        // Cambio de rol: quitar badge anterior
+        const oldBadgeId = `rol-${this.learnerRole.toLowerCase().replace(/ /g, "-")}`;
+        EventBus.emit("badge-removed", { id: oldBadgeId });
+      }
+
+      // Asignar nuevo rol
+      this.learnerRole = choice;
+      EventBus.emit("choice-made", { npcId: this.currentNpcId, choice });
+      EventBus.emit("badge-earned", {
+        id: `rol-${choice.toLowerCase().replace(/ /g, "-")}`,
+        name: choice,
+        description: `Tu rol: ${choice}`,
+      });
+      this.closeDialog();
+      return;
+    }
+
+    // Fallback para otros NPCs
+    this.learnerRole = choice;
+    EventBus.emit("choice-made", { npcId: this.currentNpcId, choice });
+    EventBus.emit("badge-earned", {
+      id: `rol-${choice.toLowerCase().replace(/ /g, "-")}`,
+      name: choice,
+      description: `Tu rol: ${choice}`,
+    });
+    this.closeDialog();
+  }
+
   private closeDialog() {
+    const closedNpcId = this.currentNpcId;
+
     // SCORM: emitir eventos al cerrar diálogo
-    if (this.currentNpcId) {
-      this.talkedTo.add(this.currentNpcId);
-      EventBus.emit("npc-dialog-complete", this.currentNpcId);
+    if (closedNpcId) {
+      this.talkedTo.add(closedNpcId);
+      EventBus.emit("npc-dialog-complete", closedNpcId);
 
       const tileX = Math.floor(this.player.x / this.TILE);
       const tileY = Math.floor(this.player.y / this.TILE);
@@ -572,6 +1147,96 @@ export class Game extends Scene {
     this.dialogBg = undefined;
     this.dialogText = undefined;
     this.dialogHint = undefined;
+
+    // Triggers post-diálogo
+    if (closedNpcId === "ncp1-welcome") {
+      EventBus.emit("badge-earned", {
+        id: "team-member",
+        name: "Miembro del equipo",
+        description: "Has conocido a todo el equipo",
+      });
+    }
+    if (closedNpcId === "ncp1" && !this.teamSpawned) {
+      this.spawnTeam();
+    }
+    if (closedNpcId && this.teamNpcIds.includes(closedNpcId) && this.allTeamTalkedTo()) {
+      this.dismissTeam();
+      this.triggerTeamWelcome();
+    }
+
+    // NPC1 re-presentación: spawnar equipo o miembro individual
+    if (closedNpcId === "ncp1" && this.teamWelcomeDone && this.lastNpc1Choice) {
+      this.respawnTeamMember(this.lastNpc1Choice);
+      this.lastNpc1Choice = null;
+    }
+
+    // Dismiss individual: si fue re-invocación individual, quitar al hablar
+    if (closedNpcId && closedNpcId === this.singleTeamRespawn) {
+      this.dismissSingleTeamMember(closedNpcId);
+      this.singleTeamRespawn = null;
+    }
+  }
+
+  private triggerTeamWelcome() {
+    if (this.teamWelcomeDone) return;
+    this.teamWelcomeDone = true;
+
+    const ncp1 = this.npcs.get("ncp1");
+    if (!ncp1) return;
+
+    // NPC1 habla después de que el equipo empiece a irse
+    this.time.delayedCall(1500, () => {
+      // Forzar diálogo de NPC1 sin necesitar adyacencia
+      this.isTalking = true;
+      this.currentNpcId = "ncp1-welcome";
+      this.talkQueue = [
+        "¡Ya conoces a todo el equipo!",
+        "Bienvenido/a oficialmente a Studio LXD, {name}.",
+      ];
+      this.talkIndex = 0;
+      this.movePath = [];
+      this.player.anims.stop();
+
+      const z = this.ZOOM;
+      const sw = this.scale.width;
+      const sh = this.scale.height;
+      const boxH = 40;
+      const pad = 4;
+
+      const bgPos = this.screenToHUD(0, sh - boxH * z);
+      const textPos = this.screenToHUD(pad * z, sh - boxH * z + pad * z);
+      const hintPos = this.screenToHUD(sw - pad * z, sh - pad * z);
+
+      this.dialogBg = this.add
+        .rectangle(bgPos.x, bgPos.y, sw / z, boxH, 0x000000, 0.85)
+        .setOrigin(0, 0)
+        .setScrollFactor(0)
+        .setDepth(1000);
+
+      this.dialogText = this.add
+        .text(textPos.x, textPos.y, "", {
+          fontFamily: "monospace",
+          fontSize: "7px",
+          color: "#ffffff",
+          wordWrap: { width: sw / z - pad * 2 },
+        })
+        .setResolution(this.ZOOM)
+        .setScrollFactor(0)
+        .setDepth(1001);
+
+      this.dialogHint = this.add
+        .text(hintPos.x, hintPos.y, "[Enter / Click]", {
+          fontFamily: "monospace",
+          fontSize: "4px",
+          color: "#aaaaaa",
+        })
+        .setOrigin(1, 1)
+        .setResolution(this.ZOOM)
+        .setScrollFactor(0)
+        .setDepth(1001);
+
+      this.showLine();
+    });
   }
 
   // ─── Pathfinding A* ───
@@ -687,9 +1352,10 @@ export class Game extends Scene {
 
   // ─── Animaciones ───
 
-  private createPlayerAnims() {
+  private createAnims() {
     if (this.anims.exists("walk-down")) return;
 
+    // Animaciones del jugador
     this.anims.create({
       key: "walk-down",
       frames: this.anims.generateFrameNumbers("player-down", {
@@ -710,6 +1376,35 @@ export class Game extends Scene {
     });
     this.anims.create({
       key: "walk-left",
+      frames: this.anims.generateFrameNumbers("player-left", {
+        start: 0,
+        end: 5,
+      }),
+      frameRate: 10,
+      repeat: -1,
+    });
+
+    // Animaciones de NPCs (mismos sprites que el hero)
+    this.anims.create({
+      key: "npc-walk-down",
+      frames: this.anims.generateFrameNumbers("player-down", {
+        start: 0,
+        end: 5,
+      }),
+      frameRate: 10,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: "npc-walk-up",
+      frames: this.anims.generateFrameNumbers("player-up", {
+        start: 0,
+        end: 5,
+      }),
+      frameRate: 10,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: "npc-walk-left",
       frames: this.anims.generateFrameNumbers("player-left", {
         start: 0,
         end: 5,

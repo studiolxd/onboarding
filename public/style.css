@@ -50,3 +50,125 @@ body {
         color: rgba(255, 255, 255, 0.3);
     }
 }
+
+/* ─── Badges ─── */
+
+.badges-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 100;
+    padding: 6px 14px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #f0c040;
+    border: 1px solid #f0c040;
+    font-family: monospace;
+    font-size: 13px;
+    cursor: pointer;
+    image-rendering: pixelated;
+    transition: background 0.2s;
+}
+
+.badges-btn:hover {
+    background: rgba(240, 192, 64, 0.2);
+}
+
+.badges-panel {
+    position: absolute;
+    top: 50px;
+    right: 12px;
+    z-index: 100;
+    width: 260px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #f0c040;
+    font-family: monospace;
+    color: #fff;
+}
+
+.badges-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(240, 192, 64, 0.3);
+    font-size: 14px;
+    color: #f0c040;
+}
+
+.badges-close {
+    background: none;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+.badges-close:hover {
+    color: #fff;
+}
+
+.badges-empty {
+    padding: 16px 12px;
+    color: #888;
+    font-size: 12px;
+    text-align: center;
+    margin: 0;
+}
+
+.badges-list {
+    padding: 8px;
+}
+
+.badge-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.badge-item:last-child {
+    border-bottom: none;
+}
+
+.badge-icon {
+    font-size: 24px;
+}
+
+.badge-name {
+    font-size: 12px;
+    color: #f0c040;
+    font-weight: bold;
+}
+
+.badge-desc {
+    font-size: 10px;
+    color: #aaa;
+    margin-top: 2px;
+}
+
+/* Toast notification */
+.badge-toast {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 200;
+    padding: 12px 24px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #f0c040;
+    color: #f0c040;
+    font-family: monospace;
+    font-size: 16px;
+    animation: badge-toast-anim 3s ease-in-out forwards;
+    pointer-events: none;
+}
+
+@keyframes badge-toast-anim {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    10% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+    20% { transform: translate(-50%, -50%) scale(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+}
