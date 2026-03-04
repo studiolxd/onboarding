@@ -823,10 +823,12 @@ export abstract class BaseScene extends Scene {
   }
 
   protected showMobileNumInput(optionCount: number) {
+    this.input.keyboard!.disableGlobalCapture();
     EventBus.emit("show-choice-input", optionCount);
   }
 
   protected hideMobileNumInput() {
+    this.input.keyboard!.enableGlobalCapture();
     EventBus.emit("hide-choice-input");
   }
 
@@ -871,7 +873,7 @@ export abstract class BaseScene extends Scene {
     this.dialogText?.setText("Escribe tu nombre abajo...");
     this.dialogHint?.setText("");
 
-    // Emit to React to show input overlay
+    this.input.keyboard!.disableGlobalCapture();
     EventBus.emit("show-name-input");
 
     // Listen for confirmed name from React
@@ -893,10 +895,10 @@ export abstract class BaseScene extends Scene {
   protected stopTextInput() {
     this.isTypingName = false;
     if (this.nameInputHandler) {
-      // Cleanup EventBus listener
       (this.nameInputHandler as unknown as () => void)();
       this.nameInputHandler = undefined;
     }
+    this.input.keyboard!.enableGlobalCapture();
     EventBus.emit("hide-name-input");
   }
 
