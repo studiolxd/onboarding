@@ -47,7 +47,7 @@ export class Game extends Scene {
   private readonly teamNpcIds = ["nuria", "serena", "suvi", "diego"];
   private lastNpc1Choice: string | null = null;
   private singleTeamRespawn: string | null = null;
-  private respawnTimeout: Phaser.Time.TimerEvent | null = null;
+  private respawnTimeouts = new Map<string, Phaser.Time.TimerEvent>();
   private respawnedIds: string[] = [];
 
   // Diálogo
@@ -812,74 +812,55 @@ export class Game extends Scene {
   private respawnTeamMember(choice: string) {
     this.teamDismissed = false;
 
-    // Cancelar timeout anterior si existe
-    this.cancelRespawnTimeout();
-
     if (choice === "Todo el equipo" || choice === "Todos los disponibles") {
       const toSpawn = this.teamNpcIds.filter((id) => !this.npcs.has(id));
       const alreadyPresent = this.teamNpcIds.filter((id) => this.npcs.has(id));
       if (toSpawn.length === 0 && alreadyPresent.length === 0) return;
 
       this.teamSpawned = false;
-      // Incluir todos (nuevos + ya presentes) en el timeout
-      this.respawnedIds = [...toSpawn, ...alreadyPresent];
       this.singleTeamRespawn = null;
+
+      const allIds = [...toSpawn, ...alreadyPresent];
+      allIds.forEach((id) => {
+        if (!this.respawnedIds.includes(id)) this.respawnedIds.push(id);
+      });
+
       if (toSpawn.length > 0) {
         this.spawnTeamFiltered(toSpawn);
       }
+
+      // Timeout individual para cada uno (resetear si ya tenía)
+      allIds.forEach((id) => this.startNpcTimeout(id));
     } else {
       const name = choice.toLowerCase();
-      if (this.npcs.has(name)) return; // ya está presente
+      if (this.npcs.has(name)) return;
       this.singleTeamRespawn = name;
-      this.respawnedIds = [name];
+      if (!this.respawnedIds.includes(name)) this.respawnedIds.push(name);
       this.spawnSingleTeamMember(name);
-    }
-
-    // 10s timeout: si no hablas con ellos, se van
-    this.respawnTimeout = this.time.delayedCall(10000, () => {
-      this.respawnTimeout = null;
-      this.dismissRespawnedTeam();
-    });
-  }
-
-  private cancelRespawnTimeout() {
-    if (this.respawnTimeout) {
-      this.respawnTimeout.destroy();
-      this.respawnTimeout = null;
+      this.startNpcTimeout(name);
     }
   }
 
-  private dismissRespawnedTeam() {
-    const cam = this.cameras.main;
-    const visibleRight = cam.midPoint.x + this.scale.width / (2 * this.ZOOM);
-    const exitX = Math.min(
-      Math.ceil(visibleRight / this.TILE) + 2,
-      this.map.width - 1
-    );
+  private startNpcTimeout(id: string) {
+    // Cancelar timeout previo de este NPC si existe
+    const existing = this.respawnTimeouts.get(id);
+    if (existing) existing.destroy();
 
-    // Dismiss los que quedan en respawnedIds (los no hablados en esta re-invocación)
-    const toDismiss = [...this.respawnedIds];
-    toDismiss.forEach((id, i) => {
-      const npc = this.npcs.get(id);
-      if (!npc) return;
-
-      npc.walking = true;
-
-      this.time.delayedCall(i * 300, () => {
-        const exitY = npc.tileY;
-        const path = this.findPathForNpc(npc.tileX, npc.tileY, exitX, exitY, npc);
-        if (path.length > 0) {
-          this.walkNpcAlongPath(npc, path, () => {
-            this.removeNpc(npc);
-          });
-        } else {
-          this.removeNpc(npc);
-        }
-      });
+    const timer = this.time.delayedCall(10000, () => {
+      this.respawnTimeouts.delete(id);
+      this.respawnedIds = this.respawnedIds.filter((rid) => rid !== id);
+      if (id === this.singleTeamRespawn) this.singleTeamRespawn = null;
+      this.dismissSingleTeamMember(id);
     });
+    this.respawnTimeouts.set(id, timer);
+  }
 
-    this.singleTeamRespawn = null;
-    this.respawnedIds = [];
+  private cancelNpcTimeout(id: string) {
+    const timer = this.respawnTimeouts.get(id);
+    if (timer) {
+      timer.destroy();
+      this.respawnTimeouts.delete(id);
+    }
   }
 
   private spawnSingleTeamMember(name: string) {
@@ -1413,20 +1394,13 @@ export class Game extends Scene {
       this.lastNpc1Choice = null;
     }
 
-    // Re-spawn: marcar como hablado en esta sesión y gestionar dismiss
-    if (closedNpcId && this.respawnedIds.length > 0 && this.respawnedIds.includes(closedNpcId)) {
-      // Quitar de la lista de pendientes
+    // Re-spawn: al hablar con un NPC re-invocado, cancelar su timeout y que se vaya
+    if (closedNpcId && this.respawnedIds.includes(closedNpcId)) {
+      this.cancelNpcTimeout(closedNpcId);
       this.respawnedIds = this.respawnedIds.filter((id) => id !== closedNpcId);
-
-      if (this.singleTeamRespawn === closedNpcId) {
-        // Era invocación individual: dismiss inmediato
-        this.cancelRespawnTimeout();
-        this.dismissSingleTeamMember(closedNpcId);
+      this.dismissSingleTeamMember(closedNpcId);
+      if (closedNpcId === this.singleTeamRespawn) {
         this.singleTeamRespawn = null;
-      } else if (this.respawnedIds.length === 0) {
-        // Equipo completo: todos hablados, dismiss
-        this.cancelRespawnTimeout();
-        this.dismissTeam();
       }
     }
   }
