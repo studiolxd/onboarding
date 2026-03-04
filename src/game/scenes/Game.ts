@@ -63,27 +63,27 @@ export class Game extends Scene {
       console.error("Error cargando:", file.key, file.src);
     });
 
-    this.load.tilemapTiledJSON("map", "/assets/maps/map.json");
-    this.load.image("dungeon", "/assets/tilesets/tiles.png");
+    this.load.tilemapTiledJSON("map", "assets/maps/map.json");
+    this.load.image("dungeon", "assets/tilesets/tiles.png");
 
-    this.load.spritesheet("player-up", "/assets/characters/hero/hero_up.png", {
+    this.load.spritesheet("player-up", "assets/characters/hero/hero_up.png", {
       frameWidth: 64,
       frameHeight: 64,
     });
     this.load.spritesheet(
       "player-down",
-      "/assets/characters/hero/hero_down.png",
+      "assets/characters/hero/hero_down.png",
       { frameWidth: 64, frameHeight: 64 }
     );
     this.load.spritesheet(
       "player-left",
-      "/assets/characters/hero/hero_side.png",
+      "assets/characters/hero/hero_side.png",
       { frameWidth: 64, frameHeight: 64 }
     );
 
     this.load.spritesheet(
       "npc1-down",
-      "/assets/characters/npc1/ncp1_down.png",
+      "assets/characters/npc1/ncp1_down.png",
       { frameWidth: 64, frameHeight: 64 }
     );
   }

@@ -1,17 +1,15 @@
 import { useEffect, useRef } from 'react';
-import { ScormProvider, useScorm } from '@studiolxd/react-scorm';
+import { ScormProvider, useScorm, useScormAutoTerminate } from '@studiolxd/react-scorm';
 import { IRefPhaserGame, PhaserGame } from './PhaserGame';
 import { EventBus } from './game/EventBus';
 
 function GameWithScorm() {
     const { api } = useScorm();
     const phaserRef = useRef<IRefPhaserGame | null>(null);
+    useScormAutoTerminate({ trackSessionTime: true, handleUnload: true, handleFreeze: true });
 
     useEffect(() => {
         if (!api) return;
-
-        // Inicializar SCORM
-        api.initialize();
 
         // Recuperar posición guardada
         const suspendResult = api.getSuspendData();
