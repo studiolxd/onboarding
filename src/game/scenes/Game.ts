@@ -835,8 +835,8 @@ export class Game extends Scene {
       this.spawnSingleTeamMember(name);
     }
 
-    // 30s timeout: si no hablas con ellos, se van
-    this.respawnTimeout = this.time.delayedCall(30000, () => {
+    // 10s timeout: si no hablas con ellos, se van
+    this.respawnTimeout = this.time.delayedCall(10000, () => {
       this.respawnTimeout = null;
       this.dismissRespawnedTeam();
     });
