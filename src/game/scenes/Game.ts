@@ -2,6 +2,7 @@ import { EventBus } from "../EventBus";
 import { Scene } from "phaser";
 
 interface NpcData {
+  id: string;
   sprite: Phaser.GameObjects.Sprite;
   tileX: number;
   tileY: number;
@@ -24,6 +25,11 @@ export class Game extends Scene {
   // NPCs
   private npcs = new Map<string, NpcData>();
   private pendingNpc: NpcData | null = null;
+
+  // SCORM
+  private learnerName = "";
+  private currentNpcId: string | null = null;
+  private talkedTo = new Set<string>();
 
   // Diálogo
   private isTalking = false;
@@ -111,7 +117,7 @@ export class Game extends Scene {
 
     // --- NPCs ---
     this.spawnNpc(objLayer, "ncp1", "npc1-down", [
-      "Hola, aventurero.",
+      "Hola, {name}.",
       "Bienvenido al mundo de Studio LXD.",
       "Explora el mapa y habla con todos.",
     ]);
@@ -193,7 +199,7 @@ export class Game extends Scene {
       const npc = this.getNpcAt(targetX, targetY);
       if (npc) {
         if (this.isAdjacentToNpc(npc)) {
-          this.openDialog(npc.messages);
+          this.openDialog(npc);
         } else {
           const adj = this.findAdjacentFree(npc);
           if (adj) {
@@ -213,6 +219,16 @@ export class Game extends Scene {
       if (path.length > 0) {
         this.movePath = path;
       }
+    });
+
+    // SCORM: recibir datos del LMS
+    EventBus.on("learner-name", (name: string) => {
+      this.learnerName = name;
+    });
+    EventBus.on("restore-position", (pos: { tileX: number; tileY: number }) => {
+      const x = pos.tileX * this.TILE + this.TILE / 2;
+      const y = pos.tileY * this.TILE + this.TILE / 2;
+      this.player.setPosition(x, y);
     });
 
     this.createPlayerAnims();
@@ -239,7 +255,7 @@ export class Game extends Scene {
     if (Phaser.Input.Keyboard.JustDown(this.keyEnter) || Phaser.Input.Keyboard.JustDown(this.keySpace)) {
       const adj = this.getAdjacentNpc();
       if (adj) {
-        this.openDialog(adj.messages);
+        this.openDialog(adj);
         return;
       }
     }
@@ -284,7 +300,7 @@ export class Game extends Scene {
       // Si hay un NPC en ese tile, abrir diálogo
       const npc = this.getNpcAt(tx, ty);
       if (npc) {
-        this.openDialog(npc.messages);
+        this.openDialog(npc);
       }
       return;
     }
@@ -331,7 +347,7 @@ export class Game extends Scene {
             const npc = this.pendingNpc;
             this.pendingNpc = null;
             if (this.isAdjacentToNpc(npc)) {
-              this.openDialog(npc.messages);
+              this.openDialog(npc);
             }
           }
         }
@@ -378,7 +394,7 @@ export class Game extends Scene {
 
     const tiles = [{ x: tileX, y: tileY }];
     this.blocked.add(this.tileKey(tileX, tileY));
-    this.npcs.set(objectName, { sprite, tileX, tileY, tiles, messages });
+    this.npcs.set(objectName, { id: objectName, sprite, tileX, tileY, tiles, messages });
   }
 
   private getNpcAt(tileX: number, tileY: number): NpcData | null {
@@ -431,11 +447,12 @@ export class Game extends Scene {
 
   // ─── Diálogo ───
 
-  private openDialog(messages: string[]) {
+  private openDialog(npc: NpcData) {
     if (this.isTalking) return;
 
     this.isTalking = true;
-    this.talkQueue = messages;
+    this.currentNpcId = npc.id;
+    this.talkQueue = npc.messages;
     this.talkIndex = 0;
     this.movePath = [];
     this.player.anims.stop();
@@ -498,7 +515,9 @@ export class Game extends Scene {
   }
 
   private showLine() {
-    this.dialogText?.setText(this.talkQueue[this.talkIndex] ?? "");
+    const line = (this.talkQueue[this.talkIndex] ?? "")
+      .replace("{name}", this.learnerName || "aventurero");
+    this.dialogText?.setText(line);
   }
 
   private advanceDialog() {
@@ -511,6 +530,21 @@ export class Game extends Scene {
   }
 
   private closeDialog() {
+    // SCORM: emitir eventos al cerrar diálogo
+    if (this.currentNpcId) {
+      this.talkedTo.add(this.currentNpcId);
+      EventBus.emit("npc-dialog-complete", this.currentNpcId);
+
+      const tileX = Math.floor(this.player.x / this.TILE);
+      const tileY = Math.floor(this.player.y / this.TILE);
+      EventBus.emit("save-position", { tileX, tileY });
+
+      if (this.talkedTo.size >= this.npcs.size) {
+        EventBus.emit("course-complete");
+      }
+      this.currentNpcId = null;
+    }
+
     this.isTalking = false;
     this.talkQueue = [];
     this.talkIndex = 0;

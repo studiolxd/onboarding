@@ -1,104 +1,78 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import { ScormProvider, useScorm } from '@studiolxd/react-scorm';
 import { IRefPhaserGame, PhaserGame } from './PhaserGame';
-import { MainMenu } from './game/scenes/MainMenu';
+import { EventBus } from './game/EventBus';
 
-function App()
-{
-    // The sprite can only be moved in the MainMenu Scene
-    const [canMoveSprite, setCanMoveSprite] = useState(true);
-
-    //  References to the PhaserGame component (game and scene are exposed)
+function GameWithScorm() {
+    const { api } = useScorm();
     const phaserRef = useRef<IRefPhaserGame | null>(null);
-    const [spritePosition, setSpritePosition] = useState({ x: 0, y: 0 });
 
-    const changeScene = () => {
+    useEffect(() => {
+        if (!api) return;
 
-        if(phaserRef.current)
-        {     
-            const scene = phaserRef.current.scene as MainMenu;
-            
-            if (scene)
-            {
-                scene.changeScene();
-            }
-        }
-    }
+        // Inicializar SCORM
+        api.initialize();
 
-    const moveSprite = () => {
-
-        if(phaserRef.current)
-        {
-
-            const scene = phaserRef.current.scene as MainMenu;
-
-            if (scene && scene.scene.key === 'MainMenu')
-            {
-                // Get the update logo position
-                scene.moveLogo(({ x, y }) => {
-
-                    setSpritePosition({ x, y });
-
-                });
-            }
+        // Recuperar posición guardada
+        const suspendResult = api.getSuspendData();
+        if (suspendResult.ok && suspendResult.value) {
+            try {
+                const saved = JSON.parse(suspendResult.value);
+                EventBus.emit('restore-position', saved);
+            } catch { /* ignore invalid JSON */ }
         }
 
-    }
-
-    const addSprite = () => {
-
-        if (phaserRef.current)
-        {
-            const scene = phaserRef.current.scene;
-
-            if (scene)
-            {
-                // Add more stars
-                const x = Phaser.Math.Between(64, scene.scale.width - 64);
-                const y = Phaser.Math.Between(64, scene.scale.height - 64);
-    
-                //  `add.sprite` is a Phaser GameObjectFactory method and it returns a Sprite Game Object instance
-                const star = scene.add.sprite(x, y, 'star');
-    
-                //  ... which you can then act upon. Here we create a Phaser Tween to fade the star sprite in and out.
-                //  You could, of course, do this from within the Phaser Scene code, but this is just an example
-                //  showing that Phaser objects and systems can be acted upon from outside of Phaser itself.
-                scene.add.tween({
-                    targets: star,
-                    duration: 500 + Math.random() * 1000,
-                    alpha: 0,
-                    yoyo: true,
-                    repeat: -1
-                });
-            }
+        // Enviar nombre del alumno al juego
+        const nameResult = api.getLearnerName();
+        if (nameResult.ok) {
+            EventBus.emit('learner-name', nameResult.value);
         }
-    }
 
-    // Event emitted from the PhaserGame component
-    const currentScene = (scene: Phaser.Scene) => {
+        // Escuchar eventos del juego
+        const onDialogComplete = (_npcId: string) => {
+            const scoreResult = api.getScore();
+            const current = scoreResult.ok ? (scoreResult.value.raw ?? 0) : 0;
+            api.setScore({ raw: current + 10, min: 0, max: 100 });
+            api.commit();
+        };
 
-        setCanMoveSprite(scene.scene.key !== 'MainMenu');
-        
-    }
+        const onSavePosition = (pos: { tileX: number; tileY: number }) => {
+            api.setSuspendData(JSON.stringify(pos));
+            api.setLocation(`${pos.tileX},${pos.tileY}`);
+            api.commit();
+        };
+
+        const onCourseComplete = () => {
+            api.setScore({ raw: 100, min: 0, max: 100 });
+            api.setComplete();
+            api.setPassed();
+            api.commit();
+        };
+
+        EventBus.on('npc-dialog-complete', onDialogComplete);
+        EventBus.on('save-position', onSavePosition);
+        EventBus.on('course-complete', onCourseComplete);
+
+        return () => {
+            EventBus.off('npc-dialog-complete', onDialogComplete);
+            EventBus.off('save-position', onSavePosition);
+            EventBus.off('course-complete', onCourseComplete);
+        };
+    }, [api]);
 
     return (
         <div id="app">
-            <PhaserGame ref={phaserRef} currentActiveScene={currentScene} />
-            {/* <div>
-                <div>
-                    <button className="button" onClick={changeScene}>Change Scene</button>
-                </div>
-                <div>
-                    <button disabled={canMoveSprite} className="button" onClick={moveSprite}>Toggle Movement</button>
-                </div>
-                <div className="spritePosition">Sprite Position:
-                    <pre>{`{\n  x: ${spritePosition.x}\n  y: ${spritePosition.y}\n}`}</pre>
-                </div>
-                <div>
-                    <button className="button" onClick={addSprite}>Add New Sprite</button>
-                </div>
-            </div> */}
+            <PhaserGame ref={phaserRef} />
         </div>
-    )
+    );
 }
 
-export default App
+function App() {
+    return (
+        <ScormProvider version="1.2" options={{ noLmsBehavior: 'mock', debug: true }}>
+            <GameWithScorm />
+        </ScormProvider>
+    );
+}
+
+export default App;
