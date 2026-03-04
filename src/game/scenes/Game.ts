@@ -1156,7 +1156,7 @@ export class Game extends Scene {
 
     const z = this.ZOOM;
     const baseY = this.dialogText
-      ? this.dialogText.y + 14
+      ? this.dialogText.y + this.dialogText.height + 4
       : 0;
 
     const visibleCount = Math.min(choice.options.length, this.MAX_VISIBLE_CHOICES);
