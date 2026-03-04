@@ -126,7 +126,7 @@ export class MainMenu extends Scene {
 
     // ⚠️ Asegúrate del nombre real de tu escena de juego:
     // si tu escena se llama 'World', cambia 'Game' por 'World'
-    this.scene.start('Game');
+    this.scene.start('SuviScene');
   }
 
   moveLogo(vueCallback: ({ x, y }: { x: number; y: number }) => void) {

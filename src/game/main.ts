@@ -1,6 +1,9 @@
 import { Boot } from './scenes/Boot';
 import { GameOver } from './scenes/GameOver';
-import { Game as MainGame } from './scenes/Game';
+import { HRScene } from './scenes/HRScene';
+import { SuviScene } from './scenes/SuviScene';
+import { ITScene } from './scenes/ITScene';
+import { CoffeeScene } from './scenes/CoffeeScene';
 import { MainMenu } from './scenes/MainMenu';
 import { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
@@ -21,7 +24,10 @@ const config: Phaser.Types.Core.GameConfig = {
         Boot,
         Preloader,
         MainMenu,
-        MainGame,
+        SuviScene,
+        HRScene,
+        ITScene,
+        CoffeeScene,
         GameOver
     ]
 };
