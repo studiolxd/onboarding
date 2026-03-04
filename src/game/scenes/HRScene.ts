@@ -146,13 +146,12 @@ export class HRScene extends BaseScene {
       const tellMore = this.d.teamMemberChoice.options[0]; // "Cuéntame más"
       if (choice === tellMore) {
         const cfg = this.teamConfig.find((c) => c.id === npcId);
-        if (cfg) {
-          this.talkQueue = cfg.extraMessages;
-          this.talkIndex = 0;
-          this.showLine();
-        } else {
-          return false;
-        }
+        if (!cfg) return false;
+        const npc = this.npcs.get(npcId);
+        if (npc) npc.choice = undefined;
+        this.talkQueue = cfg.extraMessages;
+        this.talkIndex = 0;
+        this.showLine();
         return true;
       }
       return false;
