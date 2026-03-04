@@ -1,5 +1,6 @@
 import { EventBus } from "../EventBus";
 import { Scene } from "phaser";
+import { version } from "../../../package.json";
 
 interface NpcChoice {
   question: string;
@@ -255,6 +256,18 @@ export class Game extends Scene {
       this.updateCamera(gameSize.width, gameSize.height);
       this.repositionDialog(gameSize.width, gameSize.height);
     });
+
+    // Versión del juego
+    const verPos = this.screenToHUD(4 * this.ZOOM, 4 * this.ZOOM);
+    this.add
+      .text(verPos.x, verPos.y, `v${version}`, {
+        fontFamily: "monospace",
+        fontSize: "4px",
+        color: "#666666",
+      })
+      .setResolution(this.ZOOM)
+      .setScrollFactor(0)
+      .setDepth(999);
 
     // Input teclado
     this.cursors = this.input.keyboard!.createCursorKeys();
