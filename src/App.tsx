@@ -17,6 +17,13 @@ function GameWithScorm() {
     const [badges, setBadges] = useState<Badge[]>([]);
     const [showBadges, setShowBadges] = useState(false);
     const [toast, setToast] = useState<string | null>(null);
+    const [showNameInput, setShowNameInput] = useState(false);
+    const [nameValue, setNameValue] = useState('');
+    const [showNav, setShowNav] = useState(false);
+    const [currentScene, setCurrentScene] = useState('SuviScene');
+    const [visitedSuvi, setVisitedSuvi] = useState(false);
+    const [allHrDone, setAllHrDone] = useState(false);
+    const nameInputRef = useRef<HTMLInputElement | null>(null);
 
     const addBadge = useCallback((badge: Badge) => {
         setBadges(prev => {
@@ -31,7 +38,11 @@ function GameWithScorm() {
         if (!api) return;
 
         // Estado persistente en suspendData
-        let savedState: { tileX?: number; tileY?: number; rol?: string; badges?: Badge[] } = {};
+        let savedState: {
+            tileX?: number; tileY?: number; rol?: string; badges?: Badge[];
+            displayName?: string; genderPref?: string; visitedSuvi?: boolean; visitedHr1?: boolean;
+            visitedHr2?: boolean; visitedHr3?: boolean; currentScene?: string;
+        } = {};
 
         // Cuando el juego pide datos SCORM (al terminar create())
         const onRequestScormData = () => {
@@ -56,6 +67,23 @@ function GameWithScorm() {
                     if (savedState.rol) {
                         EventBus.emit('restore-role', savedState.rol);
                     }
+                    if (savedState.displayName) {
+                        EventBus.emit('restore-display-name', savedState.displayName);
+                    }
+                    if (savedState.genderPref) {
+                        EventBus.emit('restore-gender', savedState.genderPref);
+                    }
+                    if (savedState.visitedSuvi || savedState.visitedHr1 || savedState.visitedHr2 || savedState.visitedHr3) {
+                        EventBus.emit('restore-progress', {
+                            visitedSuvi: savedState.visitedSuvi,
+                            visitedHr1: savedState.visitedHr1,
+                            visitedHr2: savedState.visitedHr2,
+                            visitedHr3: savedState.visitedHr3,
+                        });
+                        if (savedState.visitedSuvi) setVisitedSuvi(true);
+                        if (savedState.visitedHr1 && savedState.visitedHr2 && savedState.visitedHr3) setAllHrDone(true);
+                    }
+                    if (savedState.currentScene) setCurrentScene(savedState.currentScene);
                     // Restaurar badges
                     if (savedState.badges && savedState.badges.length > 0) {
                         setBadges(savedState.badges);
@@ -97,6 +125,34 @@ function GameWithScorm() {
             }
         };
 
+        // Nombre cambiado
+        const onNameChanged = (name: string) => {
+            savedState = { ...savedState, displayName: name };
+            api.setSuspendData(JSON.stringify(savedState));
+            api.commit();
+        };
+
+        // Género cambiado
+        const onGenderChanged = (pref: string) => {
+            savedState = { ...savedState, genderPref: pref };
+            api.setSuspendData(JSON.stringify(savedState));
+            api.commit();
+        };
+
+        // Progreso actualizado
+        const onProgressUpdated = (progress: { visitedSuvi?: boolean; visitedHr1?: boolean; visitedHr2?: boolean; visitedHr3?: boolean }) => {
+            savedState = { ...savedState, ...progress };
+            api.setSuspendData(JSON.stringify(savedState));
+            api.commit();
+            if (progress.visitedSuvi) setVisitedSuvi(true);
+            const vs = savedState.visitedSuvi || progress.visitedSuvi;
+            const h1 = savedState.visitedHr1 || progress.visitedHr1;
+            const h2 = savedState.visitedHr2 || progress.visitedHr2;
+            const h3 = savedState.visitedHr3 || progress.visitedHr3;
+            if (vs) setVisitedSuvi(true);
+            if (h1 && h2 && h3) setAllHrDone(true);
+        };
+
         // Diálogo completado: actualiza score y hace commit (posición + score)
         const onDialogComplete = (_npcId: string) => {
             const scoreResult = api.getScore();
@@ -112,13 +168,24 @@ function GameWithScorm() {
             api.commit();
         };
 
+        const onSceneChanged = (sceneName: string) => {
+            setCurrentScene(sceneName);
+            savedState = { ...savedState, currentScene: sceneName };
+            api.setSuspendData(JSON.stringify(savedState));
+            api.commit();
+        };
+
         EventBus.on('request-scorm-data', onRequestScormData);
         EventBus.on('save-position', onSavePosition);
         EventBus.on('choice-made', onChoiceMade);
         EventBus.on('badge-earned', onBadgeEarned);
         EventBus.on('badge-removed', onBadgeRemoved);
+        EventBus.on('name-changed', onNameChanged);
+        EventBus.on('gender-changed', onGenderChanged);
+        EventBus.on('progress-updated', onProgressUpdated);
         EventBus.on('npc-dialog-complete', onDialogComplete);
         EventBus.on('course-complete', onCourseComplete);
+        EventBus.on('scene-changed', onSceneChanged);
 
         return () => {
             EventBus.off('request-scorm-data', onRequestScormData);
@@ -126,18 +193,79 @@ function GameWithScorm() {
             EventBus.off('choice-made', onChoiceMade);
             EventBus.off('badge-earned', onBadgeEarned);
             EventBus.off('badge-removed', onBadgeRemoved);
+            EventBus.off('name-changed', onNameChanged);
+            EventBus.off('gender-changed', onGenderChanged);
+            EventBus.off('progress-updated', onProgressUpdated);
             EventBus.off('npc-dialog-complete', onDialogComplete);
             EventBus.off('course-complete', onCourseComplete);
+            EventBus.off('scene-changed', onSceneChanged);
         };
     }, [api, addBadge]);
+
+    useEffect(() => {
+        const onShow = () => {
+            setNameValue('');
+            setShowNameInput(true);
+            setTimeout(() => nameInputRef.current?.focus(), 100);
+        };
+        const onHide = () => {
+            setShowNameInput(false);
+        };
+        EventBus.on('show-name-input', onShow);
+        EventBus.on('hide-name-input', onHide);
+        return () => {
+            EventBus.off('show-name-input', onShow);
+            EventBus.off('hide-name-input', onHide);
+        };
+    }, []);
+
+    const handleNameSubmit = () => {
+        const trimmed = nameValue.trim();
+        if (trimmed.length > 0) {
+            setShowNameInput(false);
+            EventBus.emit('name-input-confirmed', trimmed);
+        }
+    };
 
     return (
         <div id="app">
             <PhaserGame ref={phaserRef} />
 
             <button
+                className="nav-map-btn"
+                disabled={!visitedSuvi}
+                onClick={() => { setShowNav(!showNav); setShowBadges(false); }}
+            >
+                Mapa
+            </button>
+
+            {showNav && visitedSuvi && (
+                <div className="nav-map-panel">
+                    <button
+                        className={`nav-map-item${currentScene === 'SuviScene' ? ' nav-map-item--active' : ''}`}
+                        onClick={() => { EventBus.emit('navigate-to-scene', 'SuviScene'); setShowNav(false); }}
+                    >
+                        Director
+                    </button>
+                    <button
+                        className={`nav-map-item${currentScene === 'HRScene' ? ' nav-map-item--active' : ''}`}
+                        onClick={() => { EventBus.emit('navigate-to-scene', 'HRScene'); setShowNav(false); }}
+                    >
+                        RRHH
+                    </button>
+                    <button
+                        className={`nav-map-item${!allHrDone ? ' nav-map-item--locked' : ''}${currentScene === 'ITScene' ? ' nav-map-item--active' : ''}`}
+                        disabled={!allHrDone}
+                        onClick={() => { if (allHrDone) { EventBus.emit('navigate-to-scene', 'ITScene'); setShowNav(false); } }}
+                    >
+                        IT{!allHrDone ? ' (bloqueado)' : ''}
+                    </button>
+                </div>
+            )}
+
+            <button
                 className="badges-btn"
-                onClick={() => setShowBadges(!showBadges)}
+                onClick={() => { setShowBadges(!showBadges); setShowNav(false); }}
             >
                 Badges{badges.length > 0 && ` (${badges.length})`}
             </button>
@@ -169,6 +297,22 @@ function GameWithScorm() {
             {toast && (
                 <div className="badge-toast">
                     🏆 {toast}
+                </div>
+            )}
+
+            {showNameInput && (
+                <div className="name-input-overlay">
+                    <input
+                        ref={nameInputRef}
+                        type="text"
+                        value={nameValue}
+                        onChange={e => setNameValue(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleNameSubmit(); }}
+                        placeholder="Escribe tu nombre..."
+                        maxLength={20}
+                        autoComplete="off"
+                    />
+                    <button onClick={handleNameSubmit}>OK</button>
                 </div>
             )}
         </div>
