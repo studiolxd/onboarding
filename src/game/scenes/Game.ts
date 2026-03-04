@@ -463,6 +463,7 @@ export class Game extends Scene {
         color: "#ffffff",
         wordWrap: { width: sw / z - pad * 2 },
       })
+      .setResolution(this.ZOOM)
       .setScrollFactor(0)
       .setDepth(1001);
 
@@ -473,6 +474,7 @@ export class Game extends Scene {
         color: "#aaaaaa",
       })
       .setOrigin(1, 1)
+      .setResolution(this.ZOOM)
       .setScrollFactor(0)
       .setDepth(1001);
 
