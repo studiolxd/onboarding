@@ -43,7 +43,6 @@ export abstract class BaseScene extends Scene {
   protected keyEnter!: Phaser.Input.Keyboard.Key;
   protected keySpace!: Phaser.Input.Keyboard.Key;
   protected numKeys: Phaser.Input.Keyboard.Key[] = [];
-  protected mobileNumInput?: HTMLInputElement;
 
   // Choices
   protected isChoosing = false;
@@ -262,6 +261,13 @@ export abstract class BaseScene extends Scene {
       this.scene.start(sceneName, this.getTransitionData());
     });
 
+    // React choice overlay: user tapped a choice button
+    EventBus.on("choice-selected", (index: number) => {
+      if (!this.isChoosing || !this.activeChoice) return;
+      this.selectChoice(index);
+      this.confirmChoice();
+    });
+
     // Cleanup on scene shutdown
     this.events.on("shutdown", () => {
       EventBus.off("learner-name");
@@ -271,6 +277,7 @@ export abstract class BaseScene extends Scene {
       EventBus.off("restore-gender");
       EventBus.off("restore-progress");
       EventBus.off("navigate-to-scene");
+      EventBus.off("choice-selected");
     });
   }
 
@@ -813,31 +820,18 @@ export abstract class BaseScene extends Scene {
     this.arrowDown = undefined;
   }
 
-  protected showMobileNumInput(optionCount: number) {
-    this.hideMobileNumInput();
-    const input = document.createElement("input");
-    input.type = "tel";
-    input.inputMode = "numeric";
-    input.pattern = "[1-9]";
-    input.style.cssText = "position:fixed;top:-100px;left:0;width:1px;height:1px;opacity:0;";
-    document.body.appendChild(input);
-    input.addEventListener("input", () => {
-      const val = parseInt(input.value, 10);
-      if (val >= 1 && val <= optionCount && this.isChoosing) {
-        this.selectChoice(val - 1);
-        this.confirmChoice();
-      }
-      input.value = "";
-    });
-    this.mobileNumInput = input;
-    input.focus();
+  protected showMobileNumInput(_optionCount: number) {
+    // Emit choices to React for a visible overlay
+    if (this.activeChoice) {
+      EventBus.emit("show-choices", {
+        question: this.activeChoice.question,
+        options: this.activeChoice.options,
+      });
+    }
   }
 
   protected hideMobileNumInput() {
-    if (this.mobileNumInput) {
-      this.mobileNumInput.remove();
-      this.mobileNumInput = undefined;
-    }
+    EventBus.emit("hide-choices");
   }
 
   protected handleChoiceClick(pointer: Phaser.Input.Pointer) {

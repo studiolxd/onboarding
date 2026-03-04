@@ -23,6 +23,7 @@ function GameWithScorm() {
     const [currentScene, setCurrentScene] = useState('SuviScene');
     const [visitedSuvi, setVisitedSuvi] = useState(false);
     const [allHrDone, setAllHrDone] = useState(false);
+    const [mobileChoices, setMobileChoices] = useState<{ question: string; options: string[] } | null>(null);
     const nameInputRef = useRef<HTMLInputElement | null>(null);
 
     const addBadge = useCallback((badge: Badge) => {
@@ -211,11 +212,21 @@ function GameWithScorm() {
         const onHide = () => {
             setShowNameInput(false);
         };
+        const onShowChoices = (data: { question: string; options: string[] }) => {
+            setMobileChoices(data);
+        };
+        const onHideChoices = () => {
+            setMobileChoices(null);
+        };
         EventBus.on('show-name-input', onShow);
         EventBus.on('hide-name-input', onHide);
+        EventBus.on('show-choices', onShowChoices);
+        EventBus.on('hide-choices', onHideChoices);
         return () => {
             EventBus.off('show-name-input', onShow);
             EventBus.off('hide-name-input', onHide);
+            EventBus.off('show-choices', onShowChoices);
+            EventBus.off('hide-choices', onHideChoices);
         };
     }, []);
 
@@ -297,6 +308,23 @@ function GameWithScorm() {
             {toast && (
                 <div className="badge-toast">
                     🏆 {toast}
+                </div>
+            )}
+
+            {mobileChoices && (
+                <div className="choices-overlay">
+                    {mobileChoices.options.map((opt, i) => (
+                        <button
+                            key={i}
+                            className="choices-overlay-btn"
+                            onClick={() => {
+                                setMobileChoices(null);
+                                EventBus.emit('choice-selected', i);
+                            }}
+                        >
+                            {i + 1}. {opt}
+                        </button>
+                    ))}
                 </div>
             )}
 
