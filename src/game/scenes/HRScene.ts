@@ -133,10 +133,10 @@ export class HRScene extends BaseScene {
       if (available.length === 0) return undefined;
 
       const options = available.length === this.teamConfig.length
-        ? ["Todo el equipo", ...available]
+        ? ["No, gracias", "Todo el equipo", ...available]
         : available.length > 1
-          ? ["Todos los disponibles", ...available]
-          : available;
+          ? ["No, gracias", "Todos los disponibles", ...available]
+          : ["No, gracias", ...available];
 
       return {
         question: "¿A quién quieres conocer?",
@@ -164,7 +164,7 @@ export class HRScene extends BaseScene {
       if (!this.visitedHr2) return undefined;
       return {
         question: "¿Qué quieres saber?",
-        options: ["Teletrabajo", "Trabajo flexible", "Trabajo por proyectos"],
+        options: ["Nada, gracias", "Teletrabajo", "Trabajo flexible", "Trabajo por proyectos"],
       };
     });
 
@@ -190,7 +190,7 @@ export class HRScene extends BaseScene {
       if (this.learnerRole) {
         return {
           question: "¿Qué quieres hacer?",
-          options: ["Cambiar rol", "Consultar funciones"],
+          options: ["Nada, gracias", "Cambiar rol", "Consultar funciones"],
         };
       }
       return {
@@ -212,6 +212,7 @@ export class HRScene extends BaseScene {
     }
 
     if (npcId === "hr2") {
+      if (choice === "Nada, gracias") return false;
       const topics: Record<string, string[]> = {
         "Teletrabajo": [
           "Trabajamos en remoto la mayor parte del tiempo.",
@@ -282,7 +283,7 @@ export class HRScene extends BaseScene {
     }
 
     // HR1 re-presentación
-    if (npcId === "hr1" && this.visitedHr1 && this.lastHr1Choice) {
+    if (npcId === "hr1" && this.visitedHr1 && this.lastHr1Choice && this.lastHr1Choice !== "No, gracias") {
       this.respawnTeamMember(this.lastHr1Choice);
       this.lastHr1Choice = null;
     }
