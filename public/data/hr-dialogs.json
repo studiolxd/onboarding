@@ -105,7 +105,9 @@
     }
   },
   "hr3": {
-    "blocked": ["Primero ve a conocer al equipo y cómo trabajamos."],
+    "blockedBoth": ["Primero ve a conocer al equipo y cómo trabajamos."],
+    "blockedHr1": ["Primero ve a conocer al equipo. Habla con la otra persona de RRHH."],
+    "blockedHr2": ["Primero ve a conocer cómo trabajamos. Habla con la otra persona de RRHH."],
     "firstVisit": ["¡Hola, {name}!", "Antes de seguir, necesito saber algo..."],
     "withRole": ["¡Ey, {name}! Tu rol actual es: {role}.", "¿Necesitas algo?"],
     "roleChoice": {

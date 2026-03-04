@@ -105,7 +105,9 @@ export class HRScene extends BaseScene {
     // HR3: rol + funciones
     this.spawnNpc(objLayer, "hr3", "npc1-down", () => {
       if (!this.visitedHr1 || !this.visitedHr2) {
-        return this.d.hr3.blocked;
+        if (!this.visitedHr1 && !this.visitedHr2) return this.d.hr3.blockedBoth;
+        if (!this.visitedHr1) return this.d.hr3.blockedHr1;
+        return this.d.hr3.blockedHr2;
       }
       if (!this.learnerRole) {
         return this.d.hr3.firstVisit;
