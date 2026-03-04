@@ -46,6 +46,8 @@ export class Game extends Scene {
   private readonly teamNpcIds = ["nuria", "serena", "suvi", "diego"];
   private lastNpc1Choice: string | null = null;
   private singleTeamRespawn: string | null = null;
+  private respawnTimeout: Phaser.Time.TimerEvent | null = null;
+  private respawnedIds: string[] = [];
 
   // Diálogo
   private isTalking = false;
@@ -740,17 +742,67 @@ export class Game extends Scene {
   private respawnTeamMember(choice: string) {
     this.teamDismissed = false;
 
+    // Cancelar timeout anterior si existe
+    this.cancelRespawnTimeout();
+
     if (choice === "Todo el equipo") {
       this.teamSpawned = false;
-      // Reset talkedTo for team members so they can be talked to again
       this.teamNpcIds.forEach((id) => this.talkedTo.delete(id));
+      this.respawnedIds = [...this.teamNpcIds];
       this.spawnTeam();
     } else {
       const name = choice.toLowerCase();
       this.singleTeamRespawn = name;
       this.talkedTo.delete(name);
+      this.respawnedIds = [name];
       this.spawnSingleTeamMember(name);
     }
+
+    // 30s timeout: si no hablas con ellos, se van
+    this.respawnTimeout = this.time.delayedCall(30000, () => {
+      this.respawnTimeout = null;
+      this.dismissRespawnedTeam();
+    });
+  }
+
+  private cancelRespawnTimeout() {
+    if (this.respawnTimeout) {
+      this.respawnTimeout.destroy();
+      this.respawnTimeout = null;
+    }
+  }
+
+  private dismissRespawnedTeam() {
+    const cam = this.cameras.main;
+    const visibleRight = cam.midPoint.x + this.scale.width / (2 * this.ZOOM);
+    const exitX = Math.min(
+      Math.ceil(visibleRight / this.TILE) + 2,
+      this.map.width - 1
+    );
+
+    // Solo dismiss los que aún no han sido hablados
+    const remaining = this.respawnedIds.filter((id) => !this.talkedTo.has(id));
+    remaining.forEach((id, i) => {
+      const npc = this.npcs.get(id);
+      if (!npc) return;
+
+      npc.walking = true;
+
+      this.time.delayedCall(i * 300, () => {
+        const exitY = npc.tileY;
+        const path = this.findPathForNpc(npc.tileX, npc.tileY, exitX, exitY, npc);
+        if (path.length > 0) {
+          this.walkNpcAlongPath(npc, path, () => {
+            this.removeNpc(npc);
+          });
+        } else {
+          this.removeNpc(npc);
+        }
+      });
+    });
+
+    this.singleTeamRespawn = null;
+    this.respawnedIds = [];
   }
 
   private spawnSingleTeamMember(name: string) {
@@ -1172,8 +1224,19 @@ export class Game extends Scene {
 
     // Dismiss individual: si fue re-invocación individual, quitar al hablar
     if (closedNpcId && closedNpcId === this.singleTeamRespawn) {
+      this.cancelRespawnTimeout();
       this.dismissSingleTeamMember(closedNpcId);
       this.singleTeamRespawn = null;
+      this.respawnedIds = [];
+    }
+
+    // Re-spawn equipo completo: si ya hablaste con todos los re-invocados, cancelar timeout
+    if (closedNpcId && this.respawnedIds.length > 0 && this.respawnedIds.includes(closedNpcId)) {
+      const allRespawnedTalked = this.respawnedIds.every((id) => this.talkedTo.has(id));
+      if (allRespawnedTalked) {
+        this.cancelRespawnTimeout();
+        this.respawnedIds = [];
+      }
     }
   }
 
