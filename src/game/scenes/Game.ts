@@ -122,6 +122,12 @@ export class Game extends Scene {
       "Explora el mapa y habla con todos.",
     ]);
 
+    this.spawnNpc(objLayer, "ncp2", "npc1-down", [
+      "¡Ey, {name}! ¿Primera vez por aquí?",
+      "Este lugar esconde muchos secretos.",
+      "Sigue explorando y lo descubrirás.",
+    ], { tileX: 17, tileY: 20 });
+
     // Cámara
     this.updateCamera(this.scale.width, this.scale.height);
     this.scale.on("resize", (gameSize: Phaser.Structs.Size) => {
@@ -233,6 +239,9 @@ export class Game extends Scene {
 
     this.createPlayerAnims();
     EventBus.emit("current-scene-ready", this);
+
+    // Pedir datos SCORM ahora que los listeners están registrados
+    EventBus.emit("request-scorm-data");
   }
 
   update() {
@@ -334,6 +343,9 @@ export class Game extends Scene {
         this.player.x = destX;
         this.player.y = destY;
 
+        // Guardar posición en SCORM tras cada movimiento
+        EventBus.emit("save-position", { tileX: tx, tileY: ty });
+
         if (
           this.movePath.length === 0 &&
           !this.cursors.left?.isDown &&
@@ -361,13 +373,18 @@ export class Game extends Scene {
     objLayer: Phaser.Tilemaps.ObjectLayer | null,
     objectName: string,
     spriteKey: string,
-    fallbackMessages: string[]
+    fallbackMessages: string[],
+    fallbackPos?: { tileX: number; tileY: number }
   ) {
     const obj = objLayer?.objects.find((o) => o.name === objectName);
-    if (!obj) return;
+    if (!obj && !fallbackPos) return;
 
-    const tileX = Math.floor((obj.x ?? 0) / this.TILE);
-    const tileY = Math.floor((obj.y ?? 0) / this.TILE);
+    const tileX = obj
+      ? Math.floor((obj.x ?? 0) / this.TILE)
+      : fallbackPos!.tileX;
+    const tileY = obj
+      ? Math.floor((obj.y ?? 0) / this.TILE)
+      : fallbackPos!.tileY;
 
     const sprite = this.add.sprite(
       tileX * this.TILE + this.TILE / 2,
@@ -379,7 +396,7 @@ export class Game extends Scene {
     sprite.setDepth(10);
 
     // Leer mensajes desde Tiled (propiedad "messages" separada por |)
-    const props = obj.properties as
+    const props = obj?.properties as
       | { name: string; value: unknown }[]
       | undefined;
     const raw = props?.find((p) => p.name === "messages")?.value as

@@ -11,22 +11,35 @@ function GameWithScorm() {
     useEffect(() => {
         if (!api) return;
 
-        // Recuperar posición guardada
-        const suspendResult = api.getSuspendData();
-        if (suspendResult.ok && suspendResult.value) {
-            try {
-                const saved = JSON.parse(suspendResult.value);
-                EventBus.emit('restore-position', saved);
-            } catch { /* ignore invalid JSON */ }
-        }
+        // Cuando el juego pide datos SCORM (al terminar create())
+        const onRequestScormData = () => {
+            const statusResult = api.getCompletionStatus();
+            if (statusResult.ok && statusResult.value === 'not attempted') {
+                api.setIncomplete();
+                api.commit();
+            }
 
-        // Enviar nombre del alumno al juego
-        const nameResult = api.getLearnerName();
-        if (nameResult.ok) {
-            EventBus.emit('learner-name', nameResult.value);
-        }
+            const nameResult = api.getLearnerName();
+            if (nameResult.ok) {
+                EventBus.emit('learner-name', nameResult.value);
+            }
 
-        // Escuchar eventos del juego
+            const suspendResult = api.getSuspendData();
+            if (suspendResult.ok && suspendResult.value) {
+                try {
+                    const saved = JSON.parse(suspendResult.value);
+                    EventBus.emit('restore-position', saved);
+                } catch { /* ignore invalid JSON */ }
+            }
+        };
+
+        // Posición: solo actualiza en memoria, sin commit
+        const onSavePosition = (pos: { tileX: number; tileY: number }) => {
+            api.setSuspendData(JSON.stringify(pos));
+            api.setLocation(`${pos.tileX},${pos.tileY}`);
+        };
+
+        // Diálogo completado: actualiza score y hace commit (posición + score)
         const onDialogComplete = (_npcId: string) => {
             const scoreResult = api.getScore();
             const current = scoreResult.ok ? (scoreResult.value.raw ?? 0) : 0;
@@ -34,26 +47,22 @@ function GameWithScorm() {
             api.commit();
         };
 
-        const onSavePosition = (pos: { tileX: number; tileY: number }) => {
-            api.setSuspendData(JSON.stringify(pos));
-            api.setLocation(`${pos.tileX},${pos.tileY}`);
-            api.commit();
-        };
-
+        // Curso completado: marca y hace commit
         const onCourseComplete = () => {
             api.setScore({ raw: 100, min: 0, max: 100 });
             api.setComplete();
-            api.setPassed();
             api.commit();
         };
 
-        EventBus.on('npc-dialog-complete', onDialogComplete);
+        EventBus.on('request-scorm-data', onRequestScormData);
         EventBus.on('save-position', onSavePosition);
+        EventBus.on('npc-dialog-complete', onDialogComplete);
         EventBus.on('course-complete', onCourseComplete);
 
         return () => {
-            EventBus.off('npc-dialog-complete', onDialogComplete);
+            EventBus.off('request-scorm-data', onRequestScormData);
             EventBus.off('save-position', onSavePosition);
+            EventBus.off('npc-dialog-complete', onDialogComplete);
             EventBus.off('course-complete', onCourseComplete);
         };
     }, [api]);
