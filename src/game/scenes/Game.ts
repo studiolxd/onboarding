@@ -5,6 +5,7 @@ interface NpcData {
   sprite: Phaser.GameObjects.Sprite;
   tileX: number;
   tileY: number;
+  tiles: { x: number; y: number }[];
   messages: string[];
 }
 
@@ -105,7 +106,7 @@ export class Game extends Scene {
     const spawnY = spawnTileY * this.TILE + this.TILE / 2;
 
     this.player = this.add.sprite(spawnX, spawnY, "player-down", 0);
-    this.player.setScale(16 / 64);
+    this.player.setScale(0.5);
     this.player.setDepth(10);
 
     // --- NPCs ---
@@ -191,10 +192,10 @@ export class Game extends Scene {
       // Click sobre NPC → interactuar o caminar hacia él
       const npc = this.getNpcAt(targetX, targetY);
       if (npc) {
-        if (this.isAdjacentToPlayer(targetX, targetY)) {
+        if (this.isAdjacentToNpc(npc)) {
           this.openDialog(npc.messages);
         } else {
-          const adj = this.findAdjacentFree(targetX, targetY);
+          const adj = this.findAdjacentFree(npc);
           if (adj) {
             const path = this.findPath(currentX, currentY, adj.x, adj.y);
             if (path.length > 0) {
@@ -329,7 +330,7 @@ export class Game extends Scene {
           if (this.pendingNpc) {
             const npc = this.pendingNpc;
             this.pendingNpc = null;
-            if (this.isAdjacentToPlayer(npc.tileX, npc.tileY)) {
+            if (this.isAdjacentToNpc(npc)) {
               this.openDialog(npc.messages);
             }
           }
@@ -358,7 +359,7 @@ export class Game extends Scene {
       spriteKey,
       0
     );
-    sprite.setScale(16 / 64);
+    sprite.setScale(0.5);
     sprite.setDepth(10);
 
     // Leer mensajes desde Tiled (propiedad "messages" separada por |)
@@ -375,37 +376,46 @@ export class Game extends Scene {
           .filter(Boolean)
       : fallbackMessages;
 
+    const tiles = [{ x: tileX, y: tileY }];
     this.blocked.add(this.tileKey(tileX, tileY));
-    this.npcs.set(objectName, { sprite, tileX, tileY, messages });
+    this.npcs.set(objectName, { sprite, tileX, tileY, tiles, messages });
   }
 
   private getNpcAt(tileX: number, tileY: number): NpcData | null {
     for (const npc of this.npcs.values()) {
-      if (npc.tileX === tileX && npc.tileY === tileY) return npc;
+      if (npc.tiles.some((t) => t.x === tileX && t.y === tileY)) return npc;
     }
     return null;
   }
 
-  private isAdjacentToPlayer(tileX: number, tileY: number): boolean {
+  private isAdjacentToNpc(npc: NpcData): boolean {
     const px = Math.floor(this.player.x / this.TILE);
     const py = Math.floor(this.player.y / this.TILE);
-    return Math.abs(px - tileX) + Math.abs(py - tileY) === 1;
+    const npcTiles = new Set(npc.tiles.map((t) => this.tileKey(t.x, t.y)));
+    for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      if (npcTiles.has(this.tileKey(px + dx, py + dy))) return true;
+    }
+    return false;
   }
 
-  private findAdjacentFree(tileX: number, tileY: number): { x: number; y: number } | null {
+  private findAdjacentFree(npc: NpcData): { x: number; y: number } | null {
     const px = Math.floor(this.player.x / this.TILE);
     const py = Math.floor(this.player.y / this.TILE);
+    const npcTiles = new Set(npc.tiles.map((t) => this.tileKey(t.x, t.y)));
     let best: { x: number; y: number } | null = null;
     let bestDist = Infinity;
 
-    for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
-      const nx = tileX + dx;
-      const ny = tileY + dy;
-      if (nx >= 0 && nx < this.map.width && ny >= 0 && ny < this.map.height && !this.isTileBlocked(nx, ny)) {
-        const dist = Math.abs(px - nx) + Math.abs(py - ny);
-        if (dist < bestDist) {
-          bestDist = dist;
-          best = { x: nx, y: ny };
+    for (const t of npc.tiles) {
+      for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+        const nx = t.x + dx;
+        const ny = t.y + dy;
+        if (npcTiles.has(this.tileKey(nx, ny))) continue;
+        if (nx >= 0 && nx < this.map.width && ny >= 0 && ny < this.map.height && !this.isTileBlocked(nx, ny)) {
+          const dist = Math.abs(px - nx) + Math.abs(py - ny);
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = { x: nx, y: ny };
+          }
         }
       }
     }
@@ -413,11 +423,8 @@ export class Game extends Scene {
   }
 
   private getAdjacentNpc(): NpcData | null {
-    const px = Math.floor(this.player.x / this.TILE);
-    const py = Math.floor(this.player.y / this.TILE);
     for (const npc of this.npcs.values()) {
-      if (Math.abs(px - npc.tileX) + Math.abs(py - npc.tileY) === 1)
-        return npc;
+      if (this.isAdjacentToNpc(npc)) return npc;
     }
     return null;
   }
@@ -433,29 +440,34 @@ export class Game extends Scene {
     this.movePath = [];
     this.player.anims.stop();
 
-    const w = this.scale.width;
-    const h = this.scale.height;
-    const boxH = 40;
-    const pad = 4;
+    const z = this.ZOOM;
+    const sw = this.scale.width;
+    const sh = this.scale.height;
+    const boxH = 40;  // world units (renders as boxH * z screen px)
+    const pad = 4;    // world units
+
+    const bgPos = this.screenToHUD(0, sh - boxH * z);
+    const textPos = this.screenToHUD(pad * z, sh - boxH * z + pad * z);
+    const hintPos = this.screenToHUD(sw - pad * z, sh - pad * z);
 
     this.dialogBg = this.add
-      .rectangle(0, h - boxH, w, boxH, 0x000000, 0.85)
+      .rectangle(bgPos.x, bgPos.y, sw / z, boxH, 0x000000, 0.85)
       .setOrigin(0, 0)
       .setScrollFactor(0)
       .setDepth(1000);
 
     this.dialogText = this.add
-      .text(pad, h - boxH + pad, "", {
+      .text(textPos.x, textPos.y, "", {
         fontFamily: "monospace",
         fontSize: "7px",
         color: "#ffffff",
-        wordWrap: { width: w - pad * 2 },
+        wordWrap: { width: sw / z - pad * 2 },
       })
       .setScrollFactor(0)
       .setDepth(1001);
 
     this.dialogHint = this.add
-      .text(w - pad, h - pad + 1, "[Enter / Click]", {
+      .text(hintPos.x, hintPos.y, "[Enter / Click]", {
         fontFamily: "monospace",
         fontSize: "4px",
         color: "#aaaaaa",
@@ -469,12 +481,18 @@ export class Game extends Scene {
 
   private repositionDialog(w: number, h: number) {
     if (!this.isTalking) return;
+    const z = this.ZOOM;
     const boxH = 40;
     const pad = 4;
-    this.dialogBg?.setPosition(0, h - boxH).setSize(w, boxH);
-    this.dialogText?.setPosition(pad, h - boxH + pad);
-    this.dialogText?.setWordWrapWidth(w - pad * 2);
-    this.dialogHint?.setPosition(w - pad, h - pad + 1);
+
+    const bgPos = this.screenToHUD(0, h - boxH * z);
+    const textPos = this.screenToHUD(pad * z, h - boxH * z + pad * z);
+    const hintPos = this.screenToHUD(w - pad * z, h - pad * z);
+
+    this.dialogBg?.setPosition(bgPos.x, bgPos.y).setSize(w / z, boxH);
+    this.dialogText?.setPosition(textPos.x, textPos.y);
+    this.dialogText?.setWordWrapWidth(w / z - pad * 2);
+    this.dialogHint?.setPosition(hintPos.x, hintPos.y);
   }
 
   private showLine() {
@@ -576,22 +594,39 @@ export class Game extends Scene {
     return [];
   }
 
+  // ─── HUD helpers ───
+
+  /** Convierte coordenadas de pantalla a mundo para objetos scrollFactor(0) con zoom */
+  private screenToHUD(sx: number, sy: number): { x: number; y: number } {
+    const z = this.ZOOM;
+    const cx = this.scale.width / 2;
+    const cy = this.scale.height / 2;
+    return { x: (sx - cx) / z + cx, y: (sy - cy) / z + cy };
+  }
+
   // ─── Cámara responsive ───
+
+  private readonly ZOOM = 3;
 
   private updateCamera(w: number, h: number) {
     const cam = this.cameras.main;
+    cam.setZoom(this.ZOOM);
+
     const mapW = this.map.widthInPixels;
     const mapH = this.map.heightInPixels;
+    // Área visible real con zoom aplicado
+    const visibleW = w / this.ZOOM;
+    const visibleH = h / this.ZOOM;
 
-    if (w >= mapW && h >= mapH) {
-      // Viewport mayor que el mapa: centrar el mapa expandiendo los bounds
-      const offsetX = (w - mapW) / 2;
-      const offsetY = (h - mapH) / 2;
+    if (visibleW >= mapW && visibleH >= mapH) {
+      // Viewport mayor que el mapa: centrar
+      const offsetX = (visibleW - mapW) / 2;
+      const offsetY = (visibleH - mapH) / 2;
       cam.setBounds(-offsetX, -offsetY, mapW + offsetX * 2, mapH + offsetY * 2);
       cam.stopFollow();
       cam.centerOn(mapW / 2, mapH / 2);
     } else {
-      // Viewport menor: bounds ajustados al mapa, cámara sigue al jugador
+      // Viewport menor: cámara sigue al jugador
       cam.setBounds(0, 0, mapW, mapH);
       cam.startFollow(this.player, true, 0.1, 0.1);
     }
