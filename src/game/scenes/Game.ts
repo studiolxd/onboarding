@@ -294,7 +294,11 @@ export class Game extends Scene {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       // Avanzar diálogo
       if (this.isTalking) {
-        this.advanceDialog();
+        if (this.isChoosing) {
+          this.handleChoiceClick(pointer);
+        } else {
+          this.advanceDialog();
+        }
         return;
       }
 
@@ -1091,7 +1095,7 @@ export class Game extends Scene {
 
     // Mostrar pregunta en el texto principal
     this.dialogText?.setText(choice.question);
-    this.dialogHint?.setText("[↑↓] Elegir  [Enter] Confirmar");
+    this.dialogHint?.setText("[↑↓ / Click] Elegir");
 
     // Crear solo los visible slots (reusable text objects)
     const z = this.ZOOM;
@@ -1159,6 +1163,30 @@ export class Game extends Scene {
       this.choiceTexts[slot].setText(prefix + label);
       this.choiceTexts[slot].setColor(color);
     }
+  }
+
+  private handleChoiceClick(pointer: Phaser.Input.Pointer) {
+    if (!this.activeChoice || this.choiceTexts.length === 0) return;
+
+    // Convertir coordenadas de pantalla a mundo HUD (scrollFactor 0)
+    const hudPos = this.screenToHUD(pointer.x, pointer.y);
+
+    // Comprobar cada slot de texto visible
+    for (let slot = 0; slot < this.choiceTexts.length; slot++) {
+      const t = this.choiceTexts[slot];
+      // Usar posición y dimensiones del texto directamente (mundo HUD)
+      const ty = t.y;
+      const th = this.CHOICE_LINE_H;
+      if (hudPos.y >= ty && hudPos.y < ty + th) {
+        const optIdx = this.choiceScrollTop + slot;
+        if (optIdx < this.activeChoice.options.length) {
+          this.selectChoice(optIdx);
+          this.confirmChoice();
+        }
+        return;
+      }
+    }
+    // Click fuera de opciones: no hacer nada
   }
 
   private confirmChoice() {
