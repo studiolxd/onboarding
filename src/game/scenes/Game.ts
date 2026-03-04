@@ -204,9 +204,11 @@ export class Game extends Scene {
     }, { tileX: 17, tileY: 20 }, () => {
       if (!this.allTeamTalkedTo()) return undefined;
       if (this.learnerRole) {
+        const allRoles = ["Diseñador instruccional", "Diseñador gráfico", "Programador"];
+        const otherRoles = allRoles.filter((r) => r !== this.learnerRole);
         return {
           question: "¿Quieres cambiar tu rol? Perderás tu badge actual.",
-          options: ["Mantener rol actual", "Diseñador instruccional", "Diseñador gráfico", "Programador"],
+          options: ["Mantener rol actual", ...otherRoles],
         };
       }
       return {
