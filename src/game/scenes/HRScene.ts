@@ -409,6 +409,8 @@ export class HRScene extends BaseScene {
         this.visitedHr3 = true;
         EventBus.emit("progress-updated", { visitedHr3: true });
       }
+      const npc = this.npcs.get("hr3");
+      if (npc) npc.choice = undefined;
       this.talkQueue = ["¡Ya conoces todas tus funciones!"];
       this.talkIndex = 0;
       this.showLine();

@@ -261,11 +261,13 @@ export abstract class BaseScene extends Scene {
       this.scene.start(sceneName, this.getTransitionData());
     });
 
-    // React choice overlay: user tapped a choice button
-    EventBus.on("choice-selected", (index: number) => {
+    // React choice input: user typed a number and confirmed
+    EventBus.on("choice-input-confirmed", (index: number) => {
       if (!this.isChoosing || !this.activeChoice) return;
-      this.selectChoice(index);
-      this.confirmChoice();
+      if (index >= 0 && index < this.activeChoice.options.length) {
+        this.selectChoice(index);
+        this.confirmChoice();
+      }
     });
 
     // Cleanup on scene shutdown
@@ -277,7 +279,7 @@ export abstract class BaseScene extends Scene {
       EventBus.off("restore-gender");
       EventBus.off("restore-progress");
       EventBus.off("navigate-to-scene");
-      EventBus.off("choice-selected");
+      EventBus.off("choice-input-confirmed");
     });
   }
 
@@ -820,18 +822,12 @@ export abstract class BaseScene extends Scene {
     this.arrowDown = undefined;
   }
 
-  protected showMobileNumInput(_optionCount: number) {
-    // Emit choices to React for a visible overlay
-    if (this.activeChoice) {
-      EventBus.emit("show-choices", {
-        question: this.activeChoice.question,
-        options: this.activeChoice.options,
-      });
-    }
+  protected showMobileNumInput(optionCount: number) {
+    EventBus.emit("show-choice-input", optionCount);
   }
 
   protected hideMobileNumInput() {
-    EventBus.emit("hide-choices");
+    EventBus.emit("hide-choice-input");
   }
 
   protected handleChoiceClick(pointer: Phaser.Input.Pointer) {

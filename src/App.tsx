@@ -23,8 +23,11 @@ function GameWithScorm() {
     const [currentScene, setCurrentScene] = useState('SuviScene');
     const [visitedSuvi, setVisitedSuvi] = useState(false);
     const [allHrDone, setAllHrDone] = useState(false);
-    const [mobileChoices, setMobileChoices] = useState<{ question: string; options: string[] } | null>(null);
+    const [showChoiceInput, setShowChoiceInput] = useState(false);
+    const [choiceValue, setChoiceValue] = useState('');
+    const [maxChoice, setMaxChoice] = useState(0);
     const nameInputRef = useRef<HTMLInputElement | null>(null);
+    const choiceInputRef = useRef<HTMLInputElement | null>(null);
 
     const addBadge = useCallback((badge: Badge) => {
         setBadges(prev => {
@@ -212,21 +215,24 @@ function GameWithScorm() {
         const onHide = () => {
             setShowNameInput(false);
         };
-        const onShowChoices = (data: { question: string; options: string[] }) => {
-            setMobileChoices(data);
+        const onShowChoiceInput = (optionCount: number) => {
+            setChoiceValue('');
+            setMaxChoice(optionCount);
+            setShowChoiceInput(true);
+            setTimeout(() => choiceInputRef.current?.focus(), 100);
         };
-        const onHideChoices = () => {
-            setMobileChoices(null);
+        const onHideChoiceInput = () => {
+            setShowChoiceInput(false);
         };
         EventBus.on('show-name-input', onShow);
         EventBus.on('hide-name-input', onHide);
-        EventBus.on('show-choices', onShowChoices);
-        EventBus.on('hide-choices', onHideChoices);
+        EventBus.on('show-choice-input', onShowChoiceInput);
+        EventBus.on('hide-choice-input', onHideChoiceInput);
         return () => {
             EventBus.off('show-name-input', onShow);
             EventBus.off('hide-name-input', onHide);
-            EventBus.off('show-choices', onShowChoices);
-            EventBus.off('hide-choices', onHideChoices);
+            EventBus.off('show-choice-input', onShowChoiceInput);
+            EventBus.off('hide-choice-input', onHideChoiceInput);
         };
     }, []);
 
@@ -235,6 +241,14 @@ function GameWithScorm() {
         if (trimmed.length > 0) {
             setShowNameInput(false);
             EventBus.emit('name-input-confirmed', trimmed);
+        }
+    };
+
+    const handleChoiceSubmit = () => {
+        const num = parseInt(choiceValue, 10);
+        if (num >= 1 && num <= maxChoice) {
+            setShowChoiceInput(false);
+            EventBus.emit('choice-input-confirmed', num - 1);
         }
     };
 
@@ -311,20 +325,24 @@ function GameWithScorm() {
                 </div>
             )}
 
-            {mobileChoices && (
-                <div className="choices-overlay">
-                    {mobileChoices.options.map((opt, i) => (
-                        <button
-                            key={i}
-                            className="choices-overlay-btn"
-                            onClick={() => {
-                                setMobileChoices(null);
-                                EventBus.emit('choice-selected', i);
-                            }}
-                        >
-                            {i + 1}. {opt}
-                        </button>
-                    ))}
+            {showChoiceInput && (
+                <div className="name-input-overlay">
+                    <input
+                        ref={choiceInputRef}
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={choiceValue}
+                        onChange={e => {
+                            const v = e.target.value.replace(/[^0-9]/g, '');
+                            setChoiceValue(v);
+                        }}
+                        onKeyDown={e => { if (e.key === 'Enter') handleChoiceSubmit(); }}
+                        placeholder={`1-${maxChoice}`}
+                        maxLength={1}
+                        autoComplete="off"
+                    />
+                    <button onClick={handleChoiceSubmit}>OK</button>
                 </div>
             )}
 
