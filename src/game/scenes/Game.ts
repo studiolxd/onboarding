@@ -64,6 +64,9 @@ export class Game extends Scene {
   private choiceIndex = 0;
   private choiceTexts: Phaser.GameObjects.Text[] = [];
   private activeChoice: NpcChoice | null = null;
+  private choiceScrollTop = 0;
+  private readonly MAX_VISIBLE_CHOICES = 4;
+  private readonly CHOICE_LINE_H = 9;
 
   private readonly TILE = 16;
   private readonly MOVE_MS = 150;
@@ -903,11 +906,19 @@ export class Game extends Scene {
     const destWasBlocked = this.blocked.has(destKey);
     this.blocked.delete(destKey);
 
+    // Bloquear tile del jugador para que los NPCs no lo atraviesen
+    const playerTileX = Math.floor(this.player.x / this.TILE);
+    const playerTileY = Math.floor(this.player.y / this.TILE);
+    const playerKey = this.tileKey(playerTileX, playerTileY);
+    const playerWasBlocked = this.blocked.has(playerKey);
+    this.blocked.add(playerKey);
+
     const path = this.findPath(sx, sy, ex, ey);
 
     // Restaurar
     this.blocked.add(npcKey);
     if (destWasBlocked) this.blocked.add(destKey);
+    if (!playerWasBlocked) this.blocked.delete(playerKey);
 
     return path;
   }
@@ -993,7 +1004,7 @@ export class Game extends Scene {
     const z = this.ZOOM;
     const sw = this.scale.width;
     const sh = this.scale.height;
-    const boxH = 40;  // world units (renders as boxH * z screen px)
+    const boxH = 56;  // world units (renders as boxH * z screen px)
     const pad = 4;    // world units
 
     const bgPos = this.screenToHUD(0, sh - boxH * z);
@@ -1034,7 +1045,7 @@ export class Game extends Scene {
   private repositionDialog(w: number, h: number) {
     if (!this.isTalking) return;
     const z = this.ZOOM;
-    const boxH = 40;
+    const boxH = 56;
     const pad = 4;
 
     const bgPos = this.screenToHUD(0, h - boxH * z);
@@ -1078,20 +1089,23 @@ export class Game extends Scene {
     this.isChoosing = true;
     this.activeChoice = choice;
     this.choiceIndex = 0;
+    this.choiceScrollTop = 0;
 
     // Mostrar pregunta en el texto principal
     this.dialogText?.setText(choice.question);
     this.dialogHint?.setText("[↑↓] Elegir  [Enter] Confirmar");
 
-    // Crear textos de opciones
+    // Crear solo los visible slots (reusable text objects)
     const z = this.ZOOM;
     const baseY = this.dialogText
       ? this.dialogText.y + 12
       : 0;
 
-    this.choiceTexts = choice.options.map((opt, i) => {
+    const visibleCount = Math.min(choice.options.length, this.MAX_VISIBLE_CHOICES);
+    this.choiceTexts = [];
+    for (let i = 0; i < visibleCount; i++) {
       const text = this.add
-        .text(this.dialogText!.x, baseY + i * 9, opt, {
+        .text(this.dialogText!.x, baseY + i * this.CHOICE_LINE_H, "", {
           fontFamily: "monospace",
           fontSize: "6px",
           color: "#cccccc",
@@ -1099,8 +1113,8 @@ export class Game extends Scene {
         .setResolution(z)
         .setScrollFactor(0)
         .setDepth(1001);
-      return text;
-    });
+      this.choiceTexts.push(text);
+    }
 
     this.selectChoice(0);
   }
@@ -1108,14 +1122,44 @@ export class Game extends Scene {
   private selectChoice(index: number) {
     this.choiceIndex = index;
     const opts = this.activeChoice!.options;
-    for (let i = 0; i < this.choiceTexts.length; i++) {
-      if (i === index) {
-        this.choiceTexts[i].setText(`> ${opts[i]}`);
-        this.choiceTexts[i].setColor("#ffffff");
-      } else {
-        this.choiceTexts[i].setText(`  ${opts[i]}`);
-        this.choiceTexts[i].setColor("#888888");
+    const total = opts.length;
+    const maxVis = this.MAX_VISIBLE_CHOICES;
+
+    // Ajustar scroll para mantener selección visible
+    if (index < this.choiceScrollTop) {
+      this.choiceScrollTop = index;
+    } else if (index >= this.choiceScrollTop + maxVis) {
+      this.choiceScrollTop = index - maxVis + 1;
+    }
+
+    // Renderizar solo las opciones visibles en los slots
+    for (let slot = 0; slot < this.choiceTexts.length; slot++) {
+      const optIdx = this.choiceScrollTop + slot;
+      if (optIdx >= total) {
+        this.choiceTexts[slot].setText("");
+        continue;
       }
+
+      let prefix = "  ";
+      let color = "#888888";
+      if (optIdx === index) {
+        prefix = "> ";
+        color = "#ffffff";
+      }
+
+      // Indicadores de scroll
+      let label = opts[optIdx];
+      if (total > maxVis) {
+        if (slot === 0 && this.choiceScrollTop > 0) {
+          label = "▲ " + label;
+        }
+        if (slot === this.choiceTexts.length - 1 && this.choiceScrollTop + maxVis < total) {
+          label = "▼ " + label;
+        }
+      }
+
+      this.choiceTexts[slot].setText(prefix + label);
+      this.choiceTexts[slot].setColor(color);
     }
   }
 
@@ -1200,6 +1244,12 @@ export class Game extends Scene {
     this.dialogText = undefined;
     this.dialogHint = undefined;
 
+    // Limpiar choices residuales
+    this.choiceTexts.forEach((t) => t.destroy());
+    this.choiceTexts = [];
+    this.isChoosing = false;
+    this.activeChoice = null;
+
     // Triggers post-diálogo
     if (closedNpcId === "ncp1-welcome") {
       EventBus.emit("badge-earned", {
@@ -1263,7 +1313,7 @@ export class Game extends Scene {
       const z = this.ZOOM;
       const sw = this.scale.width;
       const sh = this.scale.height;
-      const boxH = 40;
+      const boxH = 56;
       const pad = 4;
 
       const bgPos = this.screenToHUD(0, sh - boxH * z);
