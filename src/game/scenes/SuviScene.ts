@@ -22,8 +22,8 @@ export class SuviScene extends BaseScene {
     this.setupInput();
     this.setupBaseEventListeners();
 
-    // Spawn Suvi
-    this.spawnNpc(objLayer, "suvi-npc", "npc1-down", () => {
+    // Spawn Suvi (ncp1 in Tiled, fallback to tile 12,16)
+    this.spawnNpc(objLayer, "ncp1", "npc1-down", () => {
       if (!this.visitedSuvi) {
         return [
           "¡Hola! Soy Suvi, el director de Studio LXD.",
@@ -31,7 +31,7 @@ export class SuviScene extends BaseScene {
         ];
       }
       return [`${this.getGreeting()}`, "¿A dónde quieres ir?"];
-    }, undefined, () => {
+    }, { tileX: 12, tileY: 16 }, () => {
       if (!this.visitedSuvi) {
         const scormName = this.learnerName || "aventurero";
         return {
@@ -54,7 +54,7 @@ export class SuviScene extends BaseScene {
   }
 
   protected onChoiceConfirmed(npcId: string, choice: string): boolean {
-    if (npcId !== "suvi-npc") return false;
+    if (npcId !== "ncp1") return false;
 
     if (choice === "Prefiero otro nombre") {
       this.startTextInput();
@@ -88,7 +88,7 @@ export class SuviScene extends BaseScene {
   }
 
   protected onDialogClosed(npcId: string): void {
-    if (npcId === "suvi-npc" && !this.visitedSuvi) {
+    if (npcId === "ncp1" && !this.visitedSuvi) {
       this.visitedSuvi = true;
       EventBus.emit("progress-updated", { visitedSuvi: true });
       this.goToHR();

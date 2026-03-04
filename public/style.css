@@ -55,7 +55,7 @@ body {
 
 .badges-btn {
     position: absolute;
-    top: 12px;
+    top: 46px;
     right: 12px;
     z-index: 100;
     padding: 6px 14px;
@@ -75,7 +75,7 @@ body {
 
 .badges-panel {
     position: absolute;
-    top: 50px;
+    top: 82px;
     right: 12px;
     z-index: 100;
     width: 260px;
@@ -178,7 +178,7 @@ body {
 .nav-map-btn {
     position: absolute;
     top: 12px;
-    left: 12px;
+    right: 12px;
     z-index: 100;
     padding: 6px 14px;
     background: rgba(0, 0, 0, 0.75);
@@ -203,8 +203,8 @@ body {
 
 .nav-map-panel {
     position: absolute;
-    top: 50px;
-    left: 12px;
+    top: 46px;
+    right: 12px;
     z-index: 100;
     width: 200px;
     background: rgba(0, 0, 0, 0.9);
