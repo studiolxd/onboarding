@@ -151,9 +151,9 @@ body {
 /* Toast notification */
 .badge-toast {
     position: absolute;
-    top: 50%;
+    top: 12px;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     z-index: 200;
     padding: 12px 24px;
     background: rgba(0, 0, 0, 0.9);
@@ -166,9 +166,132 @@ body {
 }
 
 @keyframes badge-toast-anim {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-    10% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
-    20% { transform: translate(-50%, -50%) scale(1); }
+    0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    10% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.05); }
+    20% { transform: translateX(-50%) translateY(0) scale(1); }
     80% { opacity: 1; }
     100% { opacity: 0; }
+}
+
+/* ─── Navigation Map ─── */
+
+.nav-map-btn {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 100;
+    padding: 6px 14px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #60b0f0;
+    border: 1px solid #60b0f0;
+    font-family: monospace;
+    font-size: 13px;
+    cursor: pointer;
+    image-rendering: pixelated;
+    transition: background 0.2s;
+}
+
+.nav-map-btn:hover {
+    background: rgba(96, 176, 240, 0.2);
+}
+
+.nav-map-btn:disabled {
+    color: #555;
+    border-color: #555;
+    cursor: not-allowed;
+}
+
+.nav-map-panel {
+    position: absolute;
+    top: 50px;
+    left: 12px;
+    z-index: 100;
+    width: 200px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #60b0f0;
+    font-family: monospace;
+    color: #fff;
+}
+
+.nav-map-item {
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid rgba(96, 176, 240, 0.2);
+    color: #60b0f0;
+    font-family: monospace;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.2s;
+}
+
+.nav-map-item:last-child {
+    border-bottom: none;
+}
+
+.nav-map-item:hover {
+    background: rgba(96, 176, 240, 0.15);
+}
+
+.nav-map-item--locked {
+    color: #555;
+    cursor: not-allowed;
+}
+
+.nav-map-item--locked:hover {
+    background: none;
+}
+
+.nav-map-item--active {
+    color: #fff;
+    font-weight: bold;
+}
+
+/* ─── Name Input Overlay ─── */
+
+.name-input-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.95);
+    border-top: 2px solid #60b0f0;
+}
+
+.name-input-overlay input {
+    flex: 1;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #60b0f0;
+    color: #fff;
+    font-family: monospace;
+    font-size: 16px;
+    outline: none;
+}
+
+.name-input-overlay input:focus {
+    border-color: #fff;
+}
+
+.name-input-overlay button {
+    padding: 8px 16px;
+    background: #60b0f0;
+    border: none;
+    color: #000;
+    font-family: monospace;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.name-input-overlay button:hover {
+    background: #80c8ff;
 }
