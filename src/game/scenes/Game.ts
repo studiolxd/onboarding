@@ -116,16 +116,11 @@ export class Game extends Scene {
     ]);
 
     // Cámara
-    this.cameras.main.setBounds(
-      0,
-      0,
-      this.map.widthInPixels,
-      this.map.heightInPixels
-    );
     this.updateCamera(this.scale.width, this.scale.height);
     this.scale.on("resize", (gameSize: Phaser.Structs.Size) => {
       this.cameras.main.setViewport(0, 0, gameSize.width, gameSize.height);
       this.updateCamera(gameSize.width, gameSize.height);
+      this.repositionDialog(gameSize.width, gameSize.height);
     });
 
     // Input teclado
@@ -460,7 +455,7 @@ export class Game extends Scene {
       .setDepth(1001);
 
     this.dialogHint = this.add
-      .text(w - pad, h - pad + 1, "[E / Click]", {
+      .text(w - pad, h - pad + 1, "[Enter / Click]", {
         fontFamily: "monospace",
         fontSize: "4px",
         color: "#aaaaaa",
@@ -470,6 +465,16 @@ export class Game extends Scene {
       .setDepth(1001);
 
     this.showLine();
+  }
+
+  private repositionDialog(w: number, h: number) {
+    if (!this.isTalking) return;
+    const boxH = 40;
+    const pad = 4;
+    this.dialogBg?.setPosition(0, h - boxH).setSize(w, boxH);
+    this.dialogText?.setPosition(pad, h - boxH + pad);
+    this.dialogText?.setWordWrapWidth(w - pad * 2);
+    this.dialogHint?.setPosition(w - pad, h - pad + 1);
   }
 
   private showLine() {
@@ -579,9 +584,15 @@ export class Game extends Scene {
     const mapH = this.map.heightInPixels;
 
     if (w >= mapW && h >= mapH) {
+      // Viewport mayor que el mapa: centrar el mapa expandiendo los bounds
+      const offsetX = (w - mapW) / 2;
+      const offsetY = (h - mapH) / 2;
+      cam.setBounds(-offsetX, -offsetY, mapW + offsetX * 2, mapH + offsetY * 2);
       cam.stopFollow();
       cam.centerOn(mapW / 2, mapH / 2);
     } else {
+      // Viewport menor: bounds ajustados al mapa, cámara sigue al jugador
+      cam.setBounds(0, 0, mapW, mapH);
       cam.startFollow(this.player, true, 0.1, 0.1);
     }
   }
