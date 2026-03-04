@@ -116,13 +116,17 @@ export class Game extends Scene {
     ]);
 
     // Cámara
-    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.cameras.main.setBounds(
       0,
       0,
       this.map.widthInPixels,
       this.map.heightInPixels
     );
+    this.updateCamera(this.scale.width, this.scale.height);
+    this.scale.on("resize", (gameSize: Phaser.Structs.Size) => {
+      this.cameras.main.setViewport(0, 0, gameSize.width, gameSize.height);
+      this.updateCamera(gameSize.width, gameSize.height);
+    });
 
     // Input teclado
     this.cursors = this.input.keyboard!.createCursorKeys();
@@ -565,6 +569,21 @@ export class Game extends Scene {
     }
 
     return [];
+  }
+
+  // ─── Cámara responsive ───
+
+  private updateCamera(w: number, h: number) {
+    const cam = this.cameras.main;
+    const mapW = this.map.widthInPixels;
+    const mapH = this.map.heightInPixels;
+
+    if (w >= mapW && h >= mapH) {
+      cam.stopFollow();
+      cam.centerOn(mapW / 2, mapH / 2);
+    } else {
+      cam.startFollow(this.player, true, 0.1, 0.1);
+    }
   }
 
   // ─── Animaciones ───
