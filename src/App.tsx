@@ -23,11 +23,7 @@ function GameWithScorm() {
     const [currentScene, setCurrentScene] = useState('SuviScene');
     const [visitedSuvi, setVisitedSuvi] = useState(false);
     const [allHrDone, setAllHrDone] = useState(false);
-    const [showChoiceInput, setShowChoiceInput] = useState(false);
-    const [choiceValue, setChoiceValue] = useState('');
-    const [maxChoice, setMaxChoice] = useState(0);
     const nameInputRef = useRef<HTMLInputElement | null>(null);
-    const choiceInputRef = useRef<HTMLInputElement | null>(null);
 
     const addBadge = useCallback((badge: Badge) => {
         setBadges(prev => {
@@ -215,24 +211,11 @@ function GameWithScorm() {
         const onHide = () => {
             setShowNameInput(false);
         };
-        const onShowChoiceInput = (optionCount: number) => {
-            setChoiceValue('');
-            setMaxChoice(optionCount);
-            setShowChoiceInput(true);
-            setTimeout(() => choiceInputRef.current?.focus(), 100);
-        };
-        const onHideChoiceInput = () => {
-            setShowChoiceInput(false);
-        };
         EventBus.on('show-name-input', onShow);
         EventBus.on('hide-name-input', onHide);
-        EventBus.on('show-choice-input', onShowChoiceInput);
-        EventBus.on('hide-choice-input', onHideChoiceInput);
         return () => {
             EventBus.off('show-name-input', onShow);
             EventBus.off('hide-name-input', onHide);
-            EventBus.off('show-choice-input', onShowChoiceInput);
-            EventBus.off('hide-choice-input', onHideChoiceInput);
         };
     }, []);
 
@@ -315,30 +298,6 @@ function GameWithScorm() {
                 <div className="badge-toast">
                     🏆 {toast}
                 </div>
-            )}
-
-            {showChoiceInput && (
-                <input
-                    ref={choiceInputRef}
-                    className="choice-offscreen-input"
-                    type="tel"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={choiceValue}
-                    onChange={e => {
-                        const v = e.target.value.replace(/[^0-9]/g, '');
-                        const num = parseInt(v, 10);
-                        if (num >= 1 && num <= maxChoice) {
-                            setChoiceValue('');
-                            setShowChoiceInput(false);
-                            EventBus.emit('choice-input-confirmed', num - 1);
-                        } else {
-                            setChoiceValue(v);
-                        }
-                    }}
-                    maxLength={1}
-                    autoComplete="off"
-                />
             )}
 
             {showNameInput && (

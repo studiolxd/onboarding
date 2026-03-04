@@ -261,15 +261,6 @@ export abstract class BaseScene extends Scene {
       this.scene.start(sceneName, this.getTransitionData());
     });
 
-    // React choice input: user typed a number and confirmed
-    EventBus.on("choice-input-confirmed", (index: number) => {
-      if (!this.isChoosing || !this.activeChoice) return;
-      if (index >= 0 && index < this.activeChoice.options.length) {
-        this.selectChoice(index);
-        this.confirmChoice();
-      }
-    });
-
     // Cleanup on scene shutdown
     this.events.on("shutdown", () => {
       // Reset dialog state
@@ -285,7 +276,6 @@ export abstract class BaseScene extends Scene {
 
       // Hide React overlays
       this.input.keyboard!.enableGlobalCapture();
-      EventBus.emit("hide-choice-input");
       EventBus.emit("hide-name-input");
 
       // Remove EventBus listeners
@@ -296,7 +286,6 @@ export abstract class BaseScene extends Scene {
       EventBus.off("restore-gender");
       EventBus.off("restore-progress");
       EventBus.off("navigate-to-scene");
-      EventBus.off("choice-input-confirmed");
       EventBus.off("name-input-confirmed");
     });
   }
@@ -775,8 +764,7 @@ export abstract class BaseScene extends Scene {
     this.choiceScrollTop = 0;
 
     this.dialogText?.setText(choice.question);
-    this.dialogHint?.setText("Toca o pulsa el número");
-    this.showMobileNumInput(choice.options.length);
+    this.dialogHint?.setText("Toca una opción");
 
     const baseY = this.dialogText ? this.dialogText.y + this.dialogText.height + 4 : 0;
     const visibleCount = Math.min(choice.options.length, this.MAX_VISIBLE_CHOICES);
@@ -840,16 +828,6 @@ export abstract class BaseScene extends Scene {
     this.arrowDown = undefined;
   }
 
-  protected showMobileNumInput(optionCount: number) {
-    this.input.keyboard!.disableGlobalCapture();
-    EventBus.emit("show-choice-input", optionCount);
-  }
-
-  protected hideMobileNumInput() {
-    this.input.keyboard!.enableGlobalCapture();
-    EventBus.emit("hide-choice-input");
-  }
-
   protected handleChoiceClick(pointer: Phaser.Input.Pointer) {
     if (!this.activeChoice || this.choiceTexts.length === 0) return;
     const hudPos = this.screenToHUD(pointer.x, pointer.y);
@@ -875,7 +853,7 @@ export abstract class BaseScene extends Scene {
     this.choiceTexts.forEach((t) => t.destroy());
     this.choiceTexts = [];
     this.destroyArrows();
-    this.hideMobileNumInput();
+
     this.isChoosing = false;
     this.activeChoice = null;
 
@@ -948,7 +926,7 @@ export abstract class BaseScene extends Scene {
     this.choiceTexts.forEach((t) => t.destroy());
     this.choiceTexts = [];
     this.destroyArrows();
-    this.hideMobileNumInput();
+
     this.stopTextInput();
     this.isChoosing = false;
     this.activeChoice = null;
