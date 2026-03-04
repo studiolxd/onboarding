@@ -48,6 +48,12 @@ export class Preloader extends Scene
             frameWidth: 64,
             frameHeight: 64,
         });
+
+        // Dialog data
+        this.load.json("suvi-dialogs", "data/suvi-dialogs.json");
+        this.load.json("hr-dialogs", "data/hr-dialogs.json");
+        this.load.json("it-dialogs", "data/it-dialogs.json");
+        this.load.json("coffee-dialogs", "data/coffee-dialogs.json");
     }
 
     create ()

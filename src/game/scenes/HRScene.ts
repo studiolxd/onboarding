@@ -6,7 +6,7 @@ export class HRScene extends BaseScene {
   // Team
   private teamSpawned = false;
   private teamDismissed = false;
-  private readonly teamNpcIds = ["diego", "nuria", "serena"];
+  private teamNpcIds: string[] = [];
   private lastHr1Choice: string | null = null;
   private singleTeamRespawn: string | null = null;
   private respawnTimeouts = new Map<string, Phaser.Time.TimerEvent>();
@@ -15,77 +15,17 @@ export class HRScene extends BaseScene {
   // HR3 functions
   private hr3FunctionIndex = 0;
 
-  private readonly roleFunctions: Record<string, { name: string; brief: string; detail: string }[]> = {
-    "Diseñador instruccional": [
-      { name: "Diseño de experiencias", brief: "Creas itinerarios de aprendizaje.", detail: "Usarás Articulate, Miro y Notion para diseñar experiencias que enganchan y tienen sentido pedagógico." },
-      { name: "Guionización", brief: "Escribes los guiones de cada módulo.", detail: "Cada proyecto tiene su narrativa. Tú defines qué se cuenta, cómo y cuándo, adaptando el tono al público." },
-      { name: "Evaluación", brief: "Diseñas las evaluaciones.", detail: "Creas rúbricas, cuestionarios y actividades que miden el aprendizaje real, no solo memorización." },
-    ],
-    "Diseñador gráfico": [
-      { name: "Diseño de interfaces", brief: "Diseñas las pantallas de los cursos.", detail: "Usarás Figma para crear interfaces intuitivas y atractivas que faciliten el aprendizaje." },
-      { name: "Animación", brief: "Creas animaciones y motion graphics.", detail: "After Effects será tu herramienta principal para dar vida a los contenidos con animaciones profesionales." },
-      { name: "Identidad visual", brief: "Defines el estilo visual de cada proyecto.", detail: "Cada proyecto tiene su personalidad. Tú defines paletas, tipografías y estilos que lo hacen único." },
-    ],
-    "Programador": [
-      { name: "Desarrollo web", brief: "Programas las plataformas de aprendizaje.", detail: "Usarás VS Code, React y TypeScript para construir experiencias interactivas de alta calidad." },
-      { name: "Integración", brief: "Conectas sistemas y APIs.", detail: "Integras LMS, SCORM, xAPI y otras tecnologías para que todo funcione como un reloj." },
-      { name: "Gamificación técnica", brief: "Desarrollas mecánicas de juego.", detail: "Con Phaser y otras librerías, creas experiencias gamificadas que hacen el aprendizaje más divertido." },
-    ],
-  };
-
-  private readonly teamConfig: {
+  // Dialog data from JSON
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private d: any;
+  private teamConfig: {
     id: string;
     offsetX: number;
     offsetY: number;
     messages: string[];
     extraMessages: string[];
-  }[] = [
-    {
-      id: "diego",
-      offsetX: -2,
-      offsetY: 0,
-      messages: [
-        "¡Qué tal! Soy Diego, socio y responsable de tecnología.",
-        "Yo me encargo de que todo funcione.",
-        "¡Cuenta conmigo para lo técnico!",
-      ],
-      extraMessages: [
-        "Llevo muchos años en el mundo del desarrollo.",
-        "Me apasiona la tecnología educativa.",
-        "Si necesitas algo técnico, no dudes en preguntarme.",
-      ],
-    },
-    {
-      id: "nuria",
-      offsetX: 2,
-      offsetY: -1,
-      messages: [
-        "¡Hola! Soy Nuria, diseñadora instruccional.",
-        "Diseño experiencias de aprendizaje que enganchan.",
-        "¡Encantada de conocerte, {name}!",
-      ],
-      extraMessages: [
-        "Me especializo en gamificación y storytelling.",
-        "Cada proyecto es una oportunidad de innovar.",
-        "¡Me encanta trabajar en equipo!",
-      ],
-    },
-    {
-      id: "serena",
-      offsetX: 2,
-      offsetY: 1,
-      messages: [
-        "¡Hey! Soy Serena, también diseñadora instruccional.",
-        "Me encanta crear contenido interactivo.",
-        "¡Bienvenido/a al equipo!",
-      ],
-      extraMessages: [
-        "Vengo del mundo de la educación formal.",
-        "Aquí he descubierto nuevas formas de enseñar.",
-        "¡Seguro que vamos a hacer cosas geniales juntos!",
-      ],
-    },
-  ];
+  }[] = [];
+  private roleFunctions: Record<string, { name: string; brief: string; detail: string }[]> = {};
 
   // Finale
   private finaleTriggered = false;
@@ -106,6 +46,12 @@ export class HRScene extends BaseScene {
     this.setupInput();
     this.setupBaseEventListeners();
 
+    // Load dialog data
+    this.d = this.cache.json.get("hr-dialogs");
+    this.teamConfig = this.d.team;
+    this.teamNpcIds = this.teamConfig.map((c: { id: string }) => c.id);
+    this.roleFunctions = this.d.roleFunctions;
+
     // HR-specific restore: team state
     EventBus.on("restore-progress", (progress: { visitedSuvi?: boolean; visitedHr1?: boolean; visitedHr2?: boolean; visitedHr3?: boolean }) => {
       if (progress.visitedHr1) {
@@ -117,12 +63,9 @@ export class HRScene extends BaseScene {
     // --- NPCs ---
     this.spawnNpc(objLayer, "hr1", "npc1-down", () => {
       if (!this.visitedHr1) {
-        return [
-          "¡Hola, {name}! Soy de RRHH.",
-          "Voy a presentarte al equipo. ¡Espera un momento!",
-        ];
+        return this.d.hr1.firstVisit;
       }
-      return ["¡Hola de nuevo, {name}!", "¿Quieres que te presente a alguien?"];
+      return this.d.hr1.returnVisit;
     }, { tileX: 17, tileY: 20 }, () => {
       if (!this.visitedHr1) return undefined;
 
@@ -132,14 +75,15 @@ export class HRScene extends BaseScene {
 
       if (available.length === 0) return undefined;
 
+      const skip = this.d.hr1.skipOption;
       const options = available.length === this.teamConfig.length
-        ? ["No, gracias", "Todo el equipo", ...available]
+        ? [skip, this.d.hr1.allTeamOption, ...available]
         : available.length > 1
-          ? ["No, gracias", "Todos los disponibles", ...available]
-          : ["No, gracias", ...available];
+          ? [skip, this.d.hr1.someTeamOption, ...available]
+          : [skip, ...available];
 
       return {
-        question: "¿A quién quieres conocer?",
+        question: this.d.hr1.choiceQuestion,
         options,
       };
     });
@@ -148,55 +92,31 @@ export class HRScene extends BaseScene {
     this.spawnNpc(objLayer, "hr2", "npc1-down", () => {
       if (!this.visitedHr2) {
         const redirect = this.visitedHr1
-          ? "Ahora ve a hablar con RRHH para conocer tu rol."
-          : "Ahora ve a conocer al equipo. Habla con la otra persona de RRHH.";
-        return [
-          "¡Hola, {name}! Soy de RRHH también.",
-          "Te cuento cómo trabajamos aquí.",
-          "Trabajamos en remoto la mayor parte del tiempo.",
-          "Nos organizamos por proyectos, cada uno con su equipo.",
-          "Y tenemos horarios flexibles: lo importante son los resultados.",
-          redirect,
-        ];
+          ? this.d.hr2.redirectHr3
+          : this.d.hr2.redirectHr1;
+        return [...this.d.hr2.firstVisit, redirect];
       }
-      return ["¡Hola de nuevo! ¿Quieres saber algo más?"];
+      return this.d.hr2.returnVisit;
     }, { tileX: 20, tileY: 16 }, () => {
       if (!this.visitedHr2) return undefined;
-      return {
-        question: "¿Qué quieres saber?",
-        options: ["Nada, gracias", "Teletrabajo", "Trabajo flexible", "Trabajo por proyectos"],
-      };
+      return this.d.hr2.choice;
     });
 
     // HR3: rol + funciones
     this.spawnNpc(objLayer, "hr3", "npc1-down", () => {
       if (!this.visitedHr1 || !this.visitedHr2) {
-        return [
-          "Primero ve a conocer al equipo y cómo trabajamos.",
-        ];
+        return this.d.hr3.blocked;
       }
       if (!this.learnerRole) {
-        return [
-          "¡Hola, {name}!",
-          "Antes de seguir, necesito saber algo...",
-        ];
+        return this.d.hr3.firstVisit;
       }
-      return [
-        `¡Ey, {name}! Tu rol actual es: ${this.learnerRole}.`,
-        "¿Necesitas algo?",
-      ];
+      return this.d.hr3.withRole;
     }, { tileX: 22, tileY: 24 }, () => {
       if (!this.visitedHr1 || !this.visitedHr2) return undefined;
       if (this.learnerRole) {
-        return {
-          question: "¿Qué quieres hacer?",
-          options: ["Nada, gracias", "Cambiar rol", "Consultar funciones"],
-        };
+        return this.d.hr3.withRoleChoice;
       }
-      return {
-        question: "¿Cuál es tu rol en la empresa?",
-        options: ["Diseñador instruccional", "Diseñador gráfico", "Programador"],
-      };
+      return this.d.hr3.roleChoice;
     });
 
     EventBus.emit("current-scene-ready", this);
@@ -212,25 +132,10 @@ export class HRScene extends BaseScene {
     }
 
     if (npcId === "hr2") {
-      if (choice === "Nada, gracias") return false;
-      const topics: Record<string, string[]> = {
-        "Teletrabajo": [
-          "Trabajamos en remoto la mayor parte del tiempo.",
-          "Usamos Slack y Meet para comunicarnos.",
-          "Cada uno organiza su espacio como prefiera.",
-        ],
-        "Trabajo flexible": [
-          "No tenemos horarios fijos.",
-          "Lo importante son los resultados, no las horas.",
-          "Puedes organizar tu día como mejor te convenga.",
-        ],
-        "Trabajo por proyectos": [
-          "Nos organizamos por proyectos.",
-          "Cada proyecto tiene su equipo y su líder.",
-          "Así cada persona puede aportar donde más valor dé.",
-        ],
-      };
-      this.talkQueue = topics[choice] ?? ["¡Buena elección!"];
+      if (choice === this.d.hr2.choice.options[0]) return false; // "Nada, gracias"
+      const topics: Record<string, string[]> = this.d.hr2.topics;
+      this.talkQueue = topics[choice] ?? [];
+      if (this.talkQueue.length === 0) return false;
       this.talkIndex = 0;
       this.showLine();
       return true;
@@ -238,7 +143,8 @@ export class HRScene extends BaseScene {
 
     // Team member choices
     if (this.teamNpcIds.includes(npcId)) {
-      if (choice === "Cuéntame más") {
+      const tellMore = this.d.teamMemberChoice.options[0]; // "Cuéntame más"
+      if (choice === tellMore) {
         const cfg = this.teamConfig.find((c) => c.id === npcId);
         if (cfg) {
           this.talkQueue = cfg.extraMessages;
@@ -249,7 +155,7 @@ export class HRScene extends BaseScene {
         }
         return true;
       }
-      return false; // "Encantado de conocerte" → close
+      return false;
     }
 
     if (npcId === "hr3") {
@@ -261,11 +167,7 @@ export class HRScene extends BaseScene {
 
   protected onDialogClosed(npcId: string): void {
     if (npcId === "hr1-welcome") {
-      EventBus.emit("badge-earned", {
-        id: "team-member",
-        name: "Miembro del equipo",
-        description: "Has conocido a todo el equipo",
-      });
+      EventBus.emit("badge-earned", this.d.hr1.badge);
     }
     if (npcId === "hr1" && !this.teamSpawned) {
       this.spawnTeam();
@@ -283,7 +185,8 @@ export class HRScene extends BaseScene {
     }
 
     // HR1 re-presentación
-    if (npcId === "hr1" && this.visitedHr1 && this.lastHr1Choice && this.lastHr1Choice !== "No, gracias") {
+    const skip = this.d.hr1.skipOption;
+    if (npcId === "hr1" && this.visitedHr1 && this.lastHr1Choice && this.lastHr1Choice !== skip) {
       this.respawnTeamMember(this.lastHr1Choice);
       this.lastHr1Choice = null;
     }
@@ -300,7 +203,6 @@ export class HRScene extends BaseScene {
 
     // Finale check
     if (npcId === "hr-finale") {
-      // Transition to ITScene
       const data = this.getTransitionData();
       data.fromScene = "HRScene";
       EventBus.emit("scene-changed", "ITScene");
@@ -313,23 +215,26 @@ export class HRScene extends BaseScene {
   // ─── HR3 helpers ───
 
   private handleHr3Choice(choice: string): boolean {
-    if (choice === "Cambiar rol") {
-      const allRoles = ["Diseñador instruccional", "Diseñador gráfico", "Programador"];
-      const otherRoles = allRoles.filter((r) => r !== this.learnerRole);
+    const hr3 = this.d.hr3;
+    const funcOpts = hr3.functionChoice.options;
+
+    if (choice === hr3.withRoleChoice.options[1]) { // "Cambiar rol"
+      const allRoles = hr3.roleChoice.options as string[];
+      const otherRoles = allRoles.filter((r: string) => r !== this.learnerRole);
       this.showChoices({
-        question: "¿A qué rol quieres cambiar? Perderás tu badge actual.",
+        question: hr3.changeRoleQuestion,
         options: otherRoles,
       });
       return true;
     }
 
-    if (choice === "Consultar funciones") {
+    if (choice === hr3.withRoleChoice.options[2]) { // "Consultar funciones"
       this.hr3FunctionIndex = 0;
       this.showNextFunction();
       return true;
     }
 
-    if (choice === "Saber más") {
+    if (choice === funcOpts[0]) { // "Saber más"
       const funcs = this.roleFunctions[this.learnerRole] ?? [];
       const fn = funcs[this.hr3FunctionIndex];
       if (fn) {
@@ -342,14 +247,14 @@ export class HRScene extends BaseScene {
       return true;
     }
 
-    if (choice === "Ok, siguiente") {
+    if (choice === funcOpts[1]) { // "Ok, siguiente"
       this.hr3FunctionIndex++;
       this.showNextFunction();
       return true;
     }
 
     // Role selection
-    const allRoles = ["Diseñador instruccional", "Diseñador gráfico", "Programador"];
+    const allRoles = hr3.roleChoice.options as string[];
     if (allRoles.includes(choice)) {
       if (this.learnerRole) {
         const oldBadgeId = `rol-${this.learnerRole.toLowerCase().replace(/ /g, "-")}`;
@@ -358,11 +263,6 @@ export class HRScene extends BaseScene {
 
       this.learnerRole = choice;
       EventBus.emit("choice-made", { npcId: "hr3", choice });
-      EventBus.emit("badge-earned", {
-        id: `rol-${choice.toLowerCase().replace(/ /g, "-")}`,
-        name: choice,
-        description: `Tu rol: ${choice}`,
-      });
 
       if (!this.visitedHr3) {
         this.hr3FunctionIndex = 0;
@@ -372,15 +272,15 @@ export class HRScene extends BaseScene {
           if (npc) {
             npc.choice = {
               question: `${funcs[0].name}: ${funcs[0].brief}`,
-              options: ["Saber más", "Ok, siguiente"],
+              options: funcOpts,
             };
           }
         }
-        this.talkQueue = [`¡${choice}! Genial. Te explico tus funciones.`];
+        this.talkQueue = [hr3.roleSelected.replace("{role}", choice)];
         this.talkIndex = 0;
         this.showLine();
       } else {
-        return false; // close dialog
+        return false;
       }
       return true;
     }
@@ -398,7 +298,7 @@ export class HRScene extends BaseScene {
       const nextFn = funcs[this.hr3FunctionIndex];
       npc.choice = {
         question: `${nextFn.name}: ${nextFn.brief}`,
-        options: ["Saber más", "Ok, siguiente"],
+        options: this.d.hr3.functionChoice.options,
       };
     }
   }
@@ -412,7 +312,12 @@ export class HRScene extends BaseScene {
       }
       const npc = this.npcs.get("hr3");
       if (npc) npc.choice = undefined;
-      this.talkQueue = ["¡Ya conoces todas tus funciones!"];
+      EventBus.emit("badge-earned", {
+        id: `rol-${this.learnerRole.toLowerCase().replace(/ /g, "-")}`,
+        name: this.learnerRole,
+        description: `Tu rol: ${this.learnerRole}`,
+      });
+      this.talkQueue = [this.d.hr3.allFunctionsDone];
       this.talkIndex = 0;
       this.showLine();
       return;
@@ -425,7 +330,7 @@ export class HRScene extends BaseScene {
     if (npc) {
       npc.choice = {
         question: `${fn.name}: ${fn.brief}`,
-        options: ["Saber más", "Ok, siguiente"],
+        options: this.d.hr3.functionChoice.options,
       };
     }
   }
@@ -436,15 +341,9 @@ export class HRScene extends BaseScene {
       npc.choice = () => {
         if (!this.visitedHr1 || !this.visitedHr2) return undefined;
         if (this.learnerRole) {
-          return {
-            question: "¿Qué quieres hacer?",
-            options: ["Cambiar rol", "Consultar funciones"],
-          };
+          return this.d.hr3.withRoleChoice;
         }
-        return {
-          question: "¿Cuál es tu rol en la empresa?",
-          options: ["Diseñador instruccional", "Diseñador gráfico", "Programador"],
-        };
+        return this.d.hr3.roleChoice;
       };
     }
   }
@@ -456,10 +355,7 @@ export class HRScene extends BaseScene {
   }
 
   private teamMemberChoice(): NpcChoice {
-    return {
-      question: "¿Qué quieres hacer?",
-      options: ["Cuéntame más", "Encantado de conocerte"],
-    };
+    return this.d.teamMemberChoice;
   }
 
   private spawnTeam() {
@@ -566,7 +462,10 @@ export class HRScene extends BaseScene {
   private respawnTeamMember(choice: string) {
     this.teamDismissed = false;
 
-    if (choice === "Todo el equipo" || choice === "Todos los disponibles") {
+    const allTeam = this.d.hr1.allTeamOption;
+    const someTeam = this.d.hr1.someTeamOption;
+
+    if (choice === allTeam || choice === someTeam) {
       const toSpawn = this.teamNpcIds.filter((id) => !this.npcs.has(id));
       const alreadyPresent = this.teamNpcIds.filter((id) => this.npcs.has(id));
       if (toSpawn.length === 0 && alreadyPresent.length === 0) return;
@@ -679,12 +578,12 @@ export class HRScene extends BaseScene {
     EventBus.emit("progress-updated", { visitedHr1: true });
 
     this.time.delayedCall(1500, () => {
+      const welcome = this.d.hr1.welcome;
       const redirect = !this.visitedHr2
-        ? "Ahora ve a conocer cómo trabajamos. Habla con la otra persona de RRHH."
-        : "Ahora ve a hablar con RRHH para conocer tu rol y funciones.";
+        ? welcome.redirectHr2
+        : welcome.redirectHr3;
       this.openForcedDialog("hr1-welcome", [
-        "¡Ya conoces a todo el equipo!",
-        "¡Ya eres miembro del equipo, {name}!",
+        ...welcome.messages,
         redirect,
       ]);
     });
@@ -698,11 +597,7 @@ export class HRScene extends BaseScene {
     this.finaleTriggered = true;
 
     this.time.delayedCall(500, () => {
-      this.openForcedDialog("hr-finale", [
-        "¡{name}! Ya estás listo/a.",
-        "Has conocido al equipo, sabes cómo trabajamos y conoces tu rol.",
-        "Ahora toca ir a IT para terminar tu incorporación.",
-      ]);
+      this.openForcedDialog("hr-finale", this.d.finale);
     });
   }
 }

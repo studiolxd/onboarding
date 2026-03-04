@@ -5,6 +5,8 @@ import { SceneTransitionData } from "../types";
 export class SuviScene extends BaseScene {
   private pendingGoToHR = false;
   private awaitingGender = false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private d: any;
 
   constructor() {
     super("SuviScene");
@@ -22,27 +24,18 @@ export class SuviScene extends BaseScene {
     this.setupInput();
     this.setupBaseEventListeners();
 
-    // Spawn Suvi (ncp1 in Tiled, fallback to tile 12,16)
+    this.d = this.cache.json.get("suvi-dialogs").ncp1;
+
     this.spawnNpc(objLayer, "ncp1", "npc1-down", () => {
       if (!this.visitedSuvi) {
-        return [
-          "¡Hola! Soy Suvi, el director de Studio LXD.",
-          "Bienvenido/a.",
-        ];
+        return this.d.firstVisit;
       }
-      return [`${this.getGreeting()}`, "¿A dónde quieres ir?"];
+      return this.d.returnVisit;
     }, { tileX: 12, tileY: 16 }, () => {
       if (!this.visitedSuvi) {
-        const scormName = this.learnerName || "aventurero";
-        return {
-          question: `¿Te llamo ${scormName} o prefieres otro nombre?`,
-          options: [`Llámame ${scormName}`, "Prefiero otro nombre"],
-        };
+        return this.d.firstChoice;
       }
-      return {
-        question: "¿Qué quieres hacer?",
-        options: ["Ir a RRHH", "Quedarse aquí"],
-      };
+      return this.d.returnChoice;
     });
 
     EventBus.emit("current-scene-ready", this);
@@ -56,12 +49,14 @@ export class SuviScene extends BaseScene {
   protected onChoiceConfirmed(npcId: string, choice: string): boolean {
     if (npcId !== "ncp1") return false;
 
-    if (choice === "Prefiero otro nombre") {
+    const otherName = this.resolveText(this.d.firstChoice.options[1]);
+    if (choice === otherName) {
       this.startTextInput();
       return true;
     }
 
-    if (choice.startsWith("Llámame ")) {
+    const keepName = this.resolveText(this.d.firstChoice.options[0]);
+    if (choice === keepName) {
       this.displayName = this.learnerName || "aventurero";
       EventBus.emit("name-changed", this.displayName);
       this.askGender();
@@ -71,20 +66,22 @@ export class SuviScene extends BaseScene {
     // Gender choices
     if (this.awaitingGender) {
       this.awaitingGender = false;
-      if (choice === "Masculino") this.genderPref = "masculino";
-      else if (choice === "Femenino") this.genderPref = "femenino";
-      else if (choice === "Neutro") this.genderPref = "neutro";
+      const genderOpts = this.d.gender.options as string[];
+      if (choice === genderOpts[0]) this.genderPref = "masculino";
+      else if (choice === genderOpts[1]) this.genderPref = "femenino";
+      else if (choice === genderOpts[2]) this.genderPref = "neutro";
       EventBus.emit("gender-changed", this.genderPref);
       this.continueAfterGender();
       return true;
     }
 
-    if (choice === "Ir a RRHH") {
+    const goOption = this.d.returnChoice.options[0];
+    if (choice === goOption) {
       this.goToHR();
       return true;
     }
 
-    return false; // "Quedarse aquí" or others → close dialog
+    return false;
   }
 
   protected onDialogClosed(npcId: string): void {
@@ -102,21 +99,14 @@ export class SuviScene extends BaseScene {
 
   private askGender() {
     this.awaitingGender = true;
-    this.showChoices({
-      question: "¿Cómo prefieres que nos dirijamos a ti?",
-      options: ["Masculino", "Femenino", "Neutro"],
-    });
+    this.showChoices(this.d.gender);
   }
 
   private continueAfterGender() {
     this.visitedSuvi = true;
     EventBus.emit("progress-updated", { visitedSuvi: true });
     this.pendingGoToHR = true;
-    this.talkQueue = [
-      `${this.getGreeting()}`,
-      "Te llevo con el equipo de RRHH.",
-      "Ellos te presentarán al equipo y te explicarán cómo trabajamos.",
-    ];
+    this.talkQueue = this.d.afterGender;
     this.talkIndex = 0;
     this.showLine();
   }

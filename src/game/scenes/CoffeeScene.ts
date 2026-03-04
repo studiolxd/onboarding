@@ -19,13 +19,10 @@ export class CoffeeScene extends BaseScene {
     this.setupInput();
     this.setupBaseEventListeners();
 
-    // Suvi hangs out here
+    const d = this.cache.json.get("coffee-dialogs");
+
     this.spawnNpc(objLayer, "suvi-coffee", "npc1-down", () => {
-      return [
-        `${this.getGreeting()}`,
-        "Estoy aquí descansando un poco.",
-        "¿Quieres un café?",
-      ];
+      return d["suvi-coffee"].messages;
     }, { tileX: 18, tileY: 18 });
 
     EventBus.emit("current-scene-ready", this);

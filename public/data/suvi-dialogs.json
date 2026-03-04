@@ -1,0 +1,19 @@
+{
+  "ncp1": {
+    "firstVisit": ["¡Hola! Soy Suvi, el director de Studio LXD.", "Bienvenido/a."],
+    "returnVisit": ["{greeting}", "¿A dónde quieres ir?"],
+    "firstChoice": {
+      "question": "¿Te llamo {scormName} o prefieres otro nombre?",
+      "options": ["Llámame {scormName}", "Prefiero otro nombre"]
+    },
+    "returnChoice": {
+      "question": "¿Qué quieres hacer?",
+      "options": ["Ir a RRHH", "Quedarse aquí"]
+    },
+    "gender": {
+      "question": "¿Cómo prefieres que nos dirijamos a ti?",
+      "options": ["Masculino", "Femenino", "Neutro"]
+    },
+    "afterGender": ["{greeting}", "Te llevo con el equipo de RRHH.", "Ellos te presentarán al equipo y te explicarán cómo trabajamos."]
+  }
+}

@@ -734,9 +734,20 @@ export abstract class BaseScene extends Scene {
     this.dialogHint?.setPosition(hintPos.x, hintPos.y);
   }
 
+  protected resolveText(text: string): string {
+    return text
+      .replace(/\{name\}/g, this.getName())
+      .replace(/\{scormName\}/g, this.learnerName || "aventurero")
+      .replace(/\{greeting\}/g, this.getGreeting())
+      .replace(/\{role\}/g, this.learnerRole || "");
+  }
+
+  protected resolveMessages(messages: string[]): string[] {
+    return messages.map(m => this.resolveText(m));
+  }
+
   protected showLine() {
-    const name = this.getName();
-    const line = (this.talkQueue[this.talkIndex] ?? "").replace("{name}", name);
+    const line = this.resolveText(this.talkQueue[this.talkIndex] ?? "");
     this.dialogText?.setText(line);
   }
 
@@ -759,11 +770,14 @@ export abstract class BaseScene extends Scene {
 
   protected showChoices(choice: NpcChoice) {
     this.isChoosing = true;
-    this.activeChoice = choice;
+    this.activeChoice = {
+      question: this.resolveText(choice.question),
+      options: choice.options.map(o => this.resolveText(o)),
+    };
     this.choiceIndex = 0;
     this.choiceScrollTop = 0;
 
-    this.dialogText?.setText(choice.question);
+    this.dialogText?.setText(this.activeChoice.question);
     this.dialogHint?.setText("Toca una opción");
 
     const baseY = this.dialogText ? this.dialogText.y + this.dialogText.height + 4 : 0;

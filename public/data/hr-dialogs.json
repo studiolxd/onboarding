@@ -1,0 +1,184 @@
+{
+  "team": [
+    {
+      "id": "diego",
+      "offsetX": -2,
+      "offsetY": 0,
+      "messages": [
+        "¡Qué tal! Soy Diego, socio y responsable de tecnología.",
+        "Yo me encargo de que todo funcione.",
+        "¡Cuenta conmigo para lo técnico!"
+      ],
+      "extraMessages": [
+        "Llevo muchos años en el mundo del desarrollo.",
+        "Me apasiona la tecnología educativa.",
+        "Si necesitas algo técnico, no dudes en preguntarme."
+      ]
+    },
+    {
+      "id": "nuria",
+      "offsetX": -2,
+      "offsetY": 2,
+      "messages": [
+        "¡Hola! Soy Nuria, diseñadora instruccional.",
+        "Diseño experiencias de aprendizaje que enganchan.",
+        "¡Encantada de conocerte, {name}!"
+      ],
+      "extraMessages": [
+        "Me especializo en gamificación y storytelling.",
+        "Cada proyecto es una oportunidad de innovar.",
+        "¡Me encanta trabajar en equipo!"
+      ]
+    },
+    {
+      "id": "serena",
+      "offsetX": -2,
+      "offsetY": 4,
+      "messages": [
+        "¡Hey! Soy Serena, también diseñadora instruccional.",
+        "Me encanta crear contenido interactivo.",
+        "¡Bienvenido/a al equipo!"
+      ],
+      "extraMessages": [
+        "Vengo del mundo de la educación formal.",
+        "Aquí he descubierto nuevas formas de enseñar.",
+        "¡Seguro que vamos a hacer cosas geniales juntos!"
+      ]
+    }
+  ],
+  "teamMemberChoice": {
+    "question": "¿Qué quieres hacer?",
+    "options": ["Cuéntame más", "Encantado de conocerte"]
+  },
+  "hr1": {
+    "firstVisit": [
+      "¡Hola, {name}! Soy de RRHH.",
+      "Voy a presentarte al equipo. ¡Espera un momento!"
+    ],
+    "returnVisit": ["¡Hola de nuevo, {name}!", "¿Quieres que te presente a alguien?"],
+    "choiceQuestion": "¿A quién quieres conocer?",
+    "skipOption": "No, gracias",
+    "allTeamOption": "Todo el equipo",
+    "someTeamOption": "Todos los disponibles",
+    "welcome": {
+      "messages": ["¡Ya conoces a todo el equipo!", "¡Ya eres miembro del equipo, {name}!"],
+      "redirectHr2": "Ahora ve a conocer cómo trabajamos. Habla con la otra persona de RRHH.",
+      "redirectHr3": "Ahora ve a hablar con RRHH para conocer tu rol y funciones."
+    },
+    "badge": {
+      "id": "team-member",
+      "name": "Miembro del equipo",
+      "description": "Has conocido a todo el equipo"
+    }
+  },
+  "hr2": {
+    "firstVisit": [
+      "¡Hola, {name}! Soy de RRHH también.",
+      "Te cuento cómo trabajamos aquí.",
+      "Trabajamos en remoto la mayor parte del tiempo.",
+      "Nos organizamos por proyectos, cada uno con su equipo.",
+      "Y tenemos horarios flexibles: lo importante son los resultados."
+    ],
+    "redirectHr1": "Ahora ve a conocer al equipo. Habla con la otra persona de RRHH.",
+    "redirectHr3": "Ahora ve a hablar con RRHH para conocer tu rol.",
+    "returnVisit": ["¡Hola de nuevo! ¿Quieres saber algo más?"],
+    "choice": {
+      "question": "¿Qué quieres saber?",
+      "options": ["Nada, gracias", "Teletrabajo", "Trabajo flexible", "Trabajo por proyectos"]
+    },
+    "topics": {
+      "Teletrabajo": [
+        "Trabajamos en remoto la mayor parte del tiempo.",
+        "Usamos Slack y Meet para comunicarnos.",
+        "Cada uno organiza su espacio como prefiera."
+      ],
+      "Trabajo flexible": [
+        "No tenemos horarios fijos.",
+        "Lo importante son los resultados, no las horas.",
+        "Puedes organizar tu día como mejor te convenga."
+      ],
+      "Trabajo por proyectos": [
+        "Nos organizamos por proyectos.",
+        "Cada proyecto tiene su equipo y su líder.",
+        "Así cada persona puede aportar donde más valor dé."
+      ]
+    }
+  },
+  "hr3": {
+    "blocked": ["Primero ve a conocer al equipo y cómo trabajamos."],
+    "firstVisit": ["¡Hola, {name}!", "Antes de seguir, necesito saber algo..."],
+    "withRole": ["¡Ey, {name}! Tu rol actual es: {role}.", "¿Necesitas algo?"],
+    "roleChoice": {
+      "question": "¿Cuál es tu rol en la empresa?",
+      "options": ["Diseñador instruccional", "Diseñador gráfico", "Programador"]
+    },
+    "withRoleChoice": {
+      "question": "¿Qué quieres hacer?",
+      "options": ["Nada, gracias", "Cambiar rol", "Consultar funciones"]
+    },
+    "changeRoleQuestion": "¿A qué rol quieres cambiar? Perderás tu badge actual.",
+    "roleSelected": "¡{role}! Genial. Te explico tus funciones.",
+    "allFunctionsDone": "¡Ya conoces todas tus funciones!",
+    "functionChoice": {
+      "options": ["Saber más", "Ok, siguiente"]
+    }
+  },
+  "roleFunctions": {
+    "Diseñador instruccional": [
+      {
+        "name": "Diseño de experiencias",
+        "brief": "Creas itinerarios de aprendizaje.",
+        "detail": "Usarás Articulate, Miro y Notion para diseñar experiencias que enganchan y tienen sentido pedagógico."
+      },
+      {
+        "name": "Guionización",
+        "brief": "Escribes los guiones de cada módulo.",
+        "detail": "Cada proyecto tiene su narrativa. Tú defines qué se cuenta, cómo y cuándo, adaptando el tono al público."
+      },
+      {
+        "name": "Evaluación",
+        "brief": "Diseñas las evaluaciones.",
+        "detail": "Creas rúbricas, cuestionarios y actividades que miden el aprendizaje real, no solo memorización."
+      }
+    ],
+    "Diseñador gráfico": [
+      {
+        "name": "Diseño de interfaces",
+        "brief": "Diseñas las pantallas de los cursos.",
+        "detail": "Usarás Figma para crear interfaces intuitivas y atractivas que faciliten el aprendizaje."
+      },
+      {
+        "name": "Animación",
+        "brief": "Creas animaciones y motion graphics.",
+        "detail": "After Effects será tu herramienta principal para dar vida a los contenidos con animaciones profesionales."
+      },
+      {
+        "name": "Identidad visual",
+        "brief": "Defines el estilo visual de cada proyecto.",
+        "detail": "Cada proyecto tiene su personalidad. Tú defines paletas, tipografías y estilos que lo hacen único."
+      }
+    ],
+    "Programador": [
+      {
+        "name": "Desarrollo web",
+        "brief": "Programas las plataformas de aprendizaje.",
+        "detail": "Usarás VS Code, React y TypeScript para construir experiencias interactivas de alta calidad."
+      },
+      {
+        "name": "Integración",
+        "brief": "Conectas sistemas y APIs.",
+        "detail": "Integras LMS, SCORM, xAPI y otras tecnologías para que todo funcione como un reloj."
+      },
+      {
+        "name": "Gamificación técnica",
+        "brief": "Desarrollas mecánicas de juego.",
+        "detail": "Con Phaser y otras librerías, creas experiencias gamificadas que hacen el aprendizaje más divertido."
+      }
+    ]
+  },
+  "finale": [
+    "¡{name}! Ya estás listo/a.",
+    "Has conocido al equipo, sabes cómo trabajamos y conoces tu rol.",
+    "Ahora toca ir a IT para terminar tu incorporación."
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "it-npc": {
+    "messages": [
+      "¡Hola, {name}! Soy de IT.",
+      "Te voy a contar la movida.",
+      "Aquí usamos las últimas tecnologías para crear experiencias de aprendizaje.",
+      "¡Bienvenido/a al equipo técnico!"
+    ]
+  }
+}

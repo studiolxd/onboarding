@@ -19,14 +19,10 @@ export class ITScene extends BaseScene {
     this.setupInput();
     this.setupBaseEventListeners();
 
-    // IT NPC
+    const d = this.cache.json.get("it-dialogs");
+
     this.spawnNpc(objLayer, "it-npc", "npc1-down", () => {
-      return [
-        "¡Hola, {name}! Soy de IT.",
-        "Te voy a contar la movida.",
-        "Aquí usamos las últimas tecnologías para crear experiencias de aprendizaje.",
-        "¡Bienvenido/a al equipo técnico!",
-      ];
+      return d["it-npc"].messages;
     }, { tileX: 15, tileY: 14 });
 
     EventBus.emit("current-scene-ready", this);
