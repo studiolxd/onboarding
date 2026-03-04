@@ -318,27 +318,29 @@ function GameWithScorm() {
             )}
 
             {showChoiceInput && (
-                <input
-                    ref={choiceInputRef}
-                    className="choice-hidden-input"
-                    type="tel"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={choiceValue}
-                    onChange={e => {
-                        const v = e.target.value.replace(/[^0-9]/g, '');
-                        const num = parseInt(v, 10);
-                        if (num >= 1 && num <= maxChoice) {
-                            setChoiceValue('');
-                            setShowChoiceInput(false);
-                            EventBus.emit('choice-input-confirmed', num - 1);
-                        } else {
-                            setChoiceValue(v);
-                        }
-                    }}
-                    maxLength={1}
-                    autoComplete="off"
-                />
+                <div className="name-input-overlay">
+                    <input
+                        ref={choiceInputRef}
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={choiceValue}
+                        onChange={e => {
+                            const v = e.target.value.replace(/[^0-9]/g, '');
+                            const num = parseInt(v, 10);
+                            if (num >= 1 && num <= maxChoice) {
+                                setChoiceValue('');
+                                setShowChoiceInput(false);
+                                EventBus.emit('choice-input-confirmed', num - 1);
+                            } else {
+                                setChoiceValue(v);
+                            }
+                        }}
+                        placeholder={`Elige 1-${maxChoice}`}
+                        maxLength={1}
+                        autoComplete="off"
+                    />
+                </div>
             )}
 
             {showNameInput && (

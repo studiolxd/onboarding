@@ -250,19 +250,6 @@ body {
     font-weight: bold;
 }
 
-/* ─── Hidden Choice Input (opens mobile keyboard) ─── */
-
-.choice-hidden-input {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    border: none;
-    z-index: 300;
-}
-
 /* ─── Name Input Overlay ─── */
 
 .name-input-overlay {
