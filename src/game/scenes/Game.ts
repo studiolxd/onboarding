@@ -59,6 +59,8 @@ export class Game extends Scene {
   private dialogHint?: Phaser.GameObjects.Text;
   private keyEnter!: Phaser.Input.Keyboard.Key;
   private keySpace!: Phaser.Input.Keyboard.Key;
+  private numKeys: Phaser.Input.Keyboard.Key[] = [];
+  private mobileNumInput?: HTMLInputElement;
 
   // Choices
   private isChoosing = false;
@@ -280,6 +282,11 @@ export class Game extends Scene {
       Phaser.Input.Keyboard.KeyCodes.SPACE
     );
 
+    // Teclas numéricas 1-9 (keyCodes 49-57)
+    for (let i = 0; i < 9; i++) {
+      this.numKeys.push(this.input.keyboard!.addKey(49 + i));
+    }
+
     // Cursor visual
     this.cursor = this.add
       .rectangle(0, 0, this.TILE, this.TILE)
@@ -410,6 +417,15 @@ export class Game extends Scene {
           Phaser.Input.Keyboard.JustDown(this.keySpace)
         ) {
           this.confirmChoice();
+        } else {
+          // Teclas numéricas: seleccionar y confirmar directamente
+          for (let i = 0; i < this.numKeys.length && i < this.activeChoice!.options.length; i++) {
+            if (Phaser.Input.Keyboard.JustDown(this.numKeys[i])) {
+              this.selectChoice(i);
+              this.confirmChoice();
+              break;
+            }
+          }
         }
       } else if (
         Phaser.Input.Keyboard.JustDown(this.keyEnter) ||
@@ -1154,7 +1170,10 @@ export class Game extends Scene {
 
     // Mostrar pregunta en el texto principal
     this.dialogText?.setText(choice.question);
-    this.dialogHint?.setText("Toca una opción");
+    this.dialogHint?.setText("Toca o pulsa el número");
+
+    // Input numérico oculto para móvil
+    this.showMobileNumInput(choice.options.length);
 
     const z = this.ZOOM;
     const baseY = this.dialogText
@@ -1240,10 +1259,11 @@ export class Game extends Scene {
         continue;
       }
 
+      const num = `${optIdx + 1}. `;
       const prefix = optIdx === index ? "> " : "  ";
       const color = optIdx === index ? "#ffffff" : "#888888";
 
-      this.choiceTexts[slot].setText(prefix + opts[optIdx]);
+      this.choiceTexts[slot].setText(prefix + num + opts[optIdx]);
       this.choiceTexts[slot].setColor(color);
     }
 
@@ -1263,6 +1283,37 @@ export class Game extends Scene {
     this.arrowDown?.destroy();
     this.arrowUp = undefined;
     this.arrowDown = undefined;
+  }
+
+  private showMobileNumInput(optionCount: number) {
+    this.hideMobileNumInput();
+
+    const input = document.createElement("input");
+    input.type = "tel";
+    input.inputMode = "numeric";
+    input.pattern = "[1-9]";
+    input.style.cssText = "position:fixed;top:-100px;left:0;width:1px;height:1px;opacity:0;";
+    document.body.appendChild(input);
+
+    input.addEventListener("input", () => {
+      const val = parseInt(input.value, 10);
+      if (val >= 1 && val <= optionCount && this.isChoosing) {
+        this.selectChoice(val - 1);
+        this.confirmChoice();
+      }
+      input.value = "";
+    });
+
+    this.mobileNumInput = input;
+    // Intentar abrir teclado numérico en móvil
+    input.focus();
+  }
+
+  private hideMobileNumInput() {
+    if (this.mobileNumInput) {
+      this.mobileNumInput.remove();
+      this.mobileNumInput = undefined;
+    }
   }
 
   private handleChoiceClick(pointer: Phaser.Input.Pointer) {
@@ -1296,6 +1347,7 @@ export class Game extends Scene {
     this.choiceTexts.forEach((t) => t.destroy());
     this.choiceTexts = [];
     this.destroyArrows();
+    this.hideMobileNumInput();
     this.isChoosing = false;
     this.activeChoice = null;
 
@@ -1375,6 +1427,7 @@ export class Game extends Scene {
     this.choiceTexts.forEach((t) => t.destroy());
     this.choiceTexts = [];
     this.destroyArrows();
+    this.hideMobileNumInput();
     this.isChoosing = false;
     this.activeChoice = null;
 
