@@ -34,11 +34,11 @@
       "id": "serena",
       "offsetX": -2,
       "offsetY": 4,
-      "messages": [
-        "¡Hey! Soy Serena, también diseñadora instruccional.",
-        "Me encanta crear contenido interactivo.",
-        "¡Bienvenido/a al equipo!"
-      ],
+      "messages": {
+        "m": ["¡Hey! Soy Serena, también diseñadora instruccional.", "Me encanta crear contenido interactivo.", "¡Bienvenido al equipo!"],
+        "f": ["¡Hey! Soy Serena, también diseñadora instruccional.", "Me encanta crear contenido interactivo.", "¡Bienvenida al equipo!"],
+        "n": ["¡Hey! Soy Serena, también diseñadora instruccional.", "Me encanta crear contenido interactivo.", "¡Bienvenide al equipo!"]
+      },
       "extraMessages": [
         "Vengo del mundo de la educación formal.",
         "Aquí he descubierto nuevas formas de enseñar.",
@@ -48,7 +48,11 @@
   ],
   "teamMemberChoice": {
     "question": "¿Qué quieres hacer?",
-    "options": ["Cuéntame más", "Encantado de conocerte"]
+    "options": {
+      "m": ["Cuéntame más", "Encantado de conocerte"],
+      "f": ["Cuéntame más", "Encantada de conocerte"],
+      "n": ["Cuéntame más", "Encantade de conocerte"]
+    }
   },
   "hr1": {
     "firstVisit": [

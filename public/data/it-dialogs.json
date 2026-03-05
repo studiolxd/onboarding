@@ -1,10 +1,25 @@
 {
   "it-npc": {
-    "messages": [
-      "¡Hola, {name}! Soy de IT.",
-      "Te voy a contar la movida.",
-      "Aquí usamos las últimas tecnologías para crear experiencias de aprendizaje.",
-      "¡Bienvenido/a al equipo técnico!"
-    ]
+    "firstVisit": {
+      "m": ["¡Hola, {name}! Soy de IT.", "La mayoría de aplicaciones internas que utilizamos funcionan con un SSO.", "Solo tendrás que introducir tu correo y contraseña para entrar en todas.", "¡Bienvenido al equipo técnico!"],
+      "f": ["¡Hola, {name}! Soy de IT.", "La mayoría de aplicaciones internas que utilizamos funcionan con un SSO.", "Solo tendrás que introducir tu correo y contraseña para entrar en todas.", "¡Bienvenida al equipo técnico!"],
+      "n": ["¡Hola, {name}! Soy de IT.", "La mayoría de aplicaciones internas que utilizamos funcionan con un SSO.", "Solo tendrás que introducir tu correo y contraseña para entrar en todas.", "¡Bienvenide al equipo técnico!"]
+    },
+    "firstChoice": {
+      "question": "¿Alguna duda?",
+      "options": ["¿Qué es un SSO?", "Ok, entendido"]
+    },
+    "sso": [
+      "SSO significa Single Sign-On, o inicio de sesión único.",
+      "Es un sistema que te permite acceder a varias aplicaciones con las mismas credenciales.",
+      "Así no necesitas recordar un usuario y contraseña diferente para cada herramienta."
+    ],
+    "tools": [
+      "Utilizamos 3 herramientas internas principalmente:",
+      "El correo electrónico, para la comunicación del día a día.",
+      "Nextcloud, en workspace.studiolxd.com, para archivos y colaboración.",
+      "Y Frappe, en hr.studiolxd.com, para la gestión de RRHH."
+    ],
+    "returnVisit": ["¡Hola de nuevo, {name}!", "Ahora dirígete al ordenador para probar las herramientas."]
   }
 }

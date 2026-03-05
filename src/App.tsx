@@ -9,6 +9,13 @@ interface Badge {
     description: string;
 }
 
+interface GameTask {
+    id: string;
+    name: string;
+    scene: string;
+    requires?: string[];
+}
+
 function GameWithScorm() {
     const { api } = useScorm();
     const phaserRef = useRef<IRefPhaserGame | null>(null);
@@ -23,6 +30,10 @@ function GameWithScorm() {
     const [currentScene, setCurrentScene] = useState('SuviScene');
     const [visitedSuvi, setVisitedSuvi] = useState(false);
     const [allHrDone, setAllHrDone] = useState(false);
+    const [taskDefs, setTaskDefs] = useState<GameTask[]>([]);
+    const [completedTasks, setCompletedTasks] = useState<string[]>([]);
+    const [showTasks, setShowTasks] = useState(false);
+    const [taskToast, setTaskToast] = useState<string | null>(null);
     const nameInputRef = useRef<HTMLInputElement | null>(null);
 
     const addBadge = useCallback((badge: Badge) => {
@@ -40,8 +51,8 @@ function GameWithScorm() {
         // Estado persistente en suspendData
         let savedState: {
             tileX?: number; tileY?: number; rol?: string; badges?: Badge[];
-            displayName?: string; genderPref?: string; visitedSuvi?: boolean; visitedHr1?: boolean;
-            visitedHr2?: boolean; visitedHr3?: boolean; currentScene?: string;
+            displayName?: string; genderPref?: string; talkedTo?: string[];
+            completedTasks?: string[]; currentScene?: string;
         } = {};
 
         // Cuando el juego pide datos SCORM (al terminar create())
@@ -73,20 +84,34 @@ function GameWithScorm() {
                     if (savedState.genderPref) {
                         EventBus.emit('restore-gender', savedState.genderPref);
                     }
-                    if (savedState.visitedSuvi || savedState.visitedHr1 || savedState.visitedHr2 || savedState.visitedHr3) {
-                        EventBus.emit('restore-progress', {
-                            visitedSuvi: savedState.visitedSuvi,
-                            visitedHr1: savedState.visitedHr1,
-                            visitedHr2: savedState.visitedHr2,
-                            visitedHr3: savedState.visitedHr3,
-                        });
-                        if (savedState.visitedSuvi) setVisitedSuvi(true);
-                        if (savedState.visitedHr1 && savedState.visitedHr2 && savedState.visitedHr3) setAllHrDone(true);
+                    // Restore talkedTo and derive visited flags
+                    const tt = savedState.talkedTo ?? [];
+                    const bb = savedState.badges ?? [];
+                    if (tt.length > 0) {
+                        EventBus.emit('restore-talked-to', tt);
                     }
+                    const derivedVisitedSuvi = tt.includes('ncp1');
+                    const derivedVisitedHr1 = bb.some(b => b.id === 'team-member');
+                    const derivedVisitedHr2 = tt.includes('hr2');
+                    const derivedVisitedHr3 = bb.some(b => b.id.startsWith('rol-'));
+                    if (derivedVisitedSuvi || derivedVisitedHr1 || derivedVisitedHr2 || derivedVisitedHr3) {
+                        EventBus.emit('restore-progress', {
+                            visitedSuvi: derivedVisitedSuvi,
+                            visitedHr1: derivedVisitedHr1,
+                            visitedHr2: derivedVisitedHr2,
+                            visitedHr3: derivedVisitedHr3,
+                        });
+                    }
+                    if (derivedVisitedSuvi) setVisitedSuvi(true);
+                    if (derivedVisitedHr1 && derivedVisitedHr2 && derivedVisitedHr3) setAllHrDone(true);
                     if (savedState.currentScene) setCurrentScene(savedState.currentScene);
                     // Restaurar badges
                     if (savedState.badges && savedState.badges.length > 0) {
                         setBadges(savedState.badges);
+                    }
+                    // Restaurar tareas completadas
+                    if (savedState.completedTasks && savedState.completedTasks.length > 0) {
+                        setCompletedTasks(savedState.completedTasks);
                     }
                 } catch { /* ignore invalid JSON */ }
             }
@@ -119,9 +144,16 @@ function GameWithScorm() {
             addBadge(badge);
             const currentBadges = savedState.badges ?? [];
             if (!currentBadges.some(b => b.id === badge.id)) {
-                savedState = { ...savedState, badges: [...currentBadges, badge] };
+                const newBadges = [...currentBadges, badge];
+                savedState = { ...savedState, badges: newBadges };
                 api.setSuspendData(JSON.stringify(savedState));
                 api.commit();
+                // Recalculate allHrDone when relevant badges are earned
+                const tt = savedState.talkedTo ?? [];
+                const h1 = newBadges.some(b => b.id === 'team-member');
+                const h2 = tt.includes('hr2');
+                const h3 = newBadges.some(b => b.id.startsWith('rol-'));
+                if (h1 && h2 && h3) setAllHrDone(true);
             }
         };
 
@@ -139,17 +171,17 @@ function GameWithScorm() {
             api.commit();
         };
 
-        // Progreso actualizado
-        const onProgressUpdated = (progress: { visitedSuvi?: boolean; visitedHr1?: boolean; visitedHr2?: boolean; visitedHr3?: boolean }) => {
-            savedState = { ...savedState, ...progress };
+        // talkedTo actualizado
+        const onTalkedToUpdated = (ids: string[]) => {
+            savedState = { ...savedState, talkedTo: ids };
             api.setSuspendData(JSON.stringify(savedState));
             api.commit();
-            if (progress.visitedSuvi) setVisitedSuvi(true);
-            const vs = savedState.visitedSuvi || progress.visitedSuvi;
-            const h1 = savedState.visitedHr1 || progress.visitedHr1;
-            const h2 = savedState.visitedHr2 || progress.visitedHr2;
-            const h3 = savedState.visitedHr3 || progress.visitedHr3;
-            if (vs) setVisitedSuvi(true);
+            if (ids.includes('ncp1')) setVisitedSuvi(true);
+            // hr2 visited derived from talkedTo; allHrDone also needs badges (checked in onBadgeEarned)
+            const bb = savedState.badges ?? [];
+            const h1 = bb.some(b => b.id === 'team-member');
+            const h2 = ids.includes('hr2');
+            const h3 = bb.some(b => b.id.startsWith('rol-'));
             if (h1 && h2 && h3) setAllHrDone(true);
         };
 
@@ -168,6 +200,26 @@ function GameWithScorm() {
             api.commit();
         };
 
+        // Definiciones de tareas cargadas desde JSON
+        const onTaskDefsLoaded = (defs: GameTask[]) => {
+            setTaskDefs(defs);
+        };
+
+        // Tarea completada
+        const onTaskCompleted = (taskId: string) => {
+            setCompletedTasks(prev => {
+                if (prev.includes(taskId)) return prev;
+                const next = [...prev, taskId];
+                savedState = { ...savedState, completedTasks: next };
+                api.setSuspendData(JSON.stringify(savedState));
+                api.commit();
+                return next;
+            });
+            // Show toast with task name
+            setTaskToast(taskId);
+            setTimeout(() => setTaskToast(null), 3000);
+        };
+
         const onSceneChanged = (sceneName: string) => {
             setCurrentScene(sceneName);
             savedState = { ...savedState, currentScene: sceneName };
@@ -182,10 +234,12 @@ function GameWithScorm() {
         EventBus.on('badge-removed', onBadgeRemoved);
         EventBus.on('name-changed', onNameChanged);
         EventBus.on('gender-changed', onGenderChanged);
-        EventBus.on('progress-updated', onProgressUpdated);
+        EventBus.on('talked-to-updated', onTalkedToUpdated);
         EventBus.on('npc-dialog-complete', onDialogComplete);
         EventBus.on('course-complete', onCourseComplete);
         EventBus.on('scene-changed', onSceneChanged);
+        EventBus.on('task-defs-loaded', onTaskDefsLoaded);
+        EventBus.on('task-completed', onTaskCompleted);
 
         return () => {
             EventBus.off('request-scorm-data', onRequestScormData);
@@ -195,10 +249,12 @@ function GameWithScorm() {
             EventBus.off('badge-removed', onBadgeRemoved);
             EventBus.off('name-changed', onNameChanged);
             EventBus.off('gender-changed', onGenderChanged);
-            EventBus.off('progress-updated', onProgressUpdated);
+            EventBus.off('talked-to-updated', onTalkedToUpdated);
             EventBus.off('npc-dialog-complete', onDialogComplete);
             EventBus.off('course-complete', onCourseComplete);
             EventBus.off('scene-changed', onSceneChanged);
+            EventBus.off('task-defs-loaded', onTaskDefsLoaded);
+            EventBus.off('task-completed', onTaskCompleted);
         };
     }, [api, addBadge]);
 
@@ -234,7 +290,7 @@ function GameWithScorm() {
             <button
                 className="nav-map-btn"
                 disabled={!visitedSuvi}
-                onClick={() => { setShowNav(!showNav); setShowBadges(false); }}
+                onClick={() => { setShowNav(!showNav); setShowBadges(false); setShowTasks(false); }}
             >
                 Mapa
             </button>
@@ -265,7 +321,7 @@ function GameWithScorm() {
 
             <button
                 className="badges-btn"
-                onClick={() => { setShowBadges(!showBadges); setShowNav(false); }}
+                onClick={() => { setShowBadges(!showBadges); setShowNav(false); setShowTasks(false); }}
             >
                 Badges{badges.length > 0 && ` (${badges.length})`}
             </button>
@@ -294,11 +350,66 @@ function GameWithScorm() {
                 </div>
             )}
 
+            <button
+                className="tasks-btn"
+                onClick={() => { setShowTasks(!showTasks); setShowBadges(false); setShowNav(false); }}
+            >
+                Tareas
+                {taskDefs.length > 0 && ` (${completedTasks.length}/${taskDefs.filter(t => !t.requires || t.requires.every(r => completedTasks.includes(r))).length})`}
+            </button>
+
+            {showTasks && taskDefs.length > 0 && (() => {
+                const scenes = [...new Set(taskDefs.map(t => t.scene))];
+                const sceneLabels: Record<string, string> = {
+                    SuviScene: 'Director',
+                    HRScene: 'Recursos Humanos',
+                    ITScene: 'IT',
+                };
+                return (
+                    <div className="tasks-panel">
+                        <div className="tasks-panel-header">
+                            <span>Tareas</span>
+                            <button className="tasks-close" onClick={() => setShowTasks(false)}>X</button>
+                        </div>
+                        {scenes.map(scene => {
+                            const sceneTasks = taskDefs.filter(t => t.scene === scene);
+                            const visible = sceneTasks.filter(t =>
+                                !t.requires || t.requires.every(r => completedTasks.includes(r))
+                            );
+                            if (visible.length === 0) return null;
+                            return (
+                                <div key={scene} className="task-group">
+                                    <div className="task-group-title">{sceneLabels[scene] || scene}</div>
+                                    {visible.map(t => {
+                                        const done = completedTasks.includes(t.id);
+                                        return (
+                                            <div key={t.id} className={`task-item${done ? ' task-item--done' : ''}`}>
+                                                <span className="task-check">{done ? '\u2713' : '\u25CB'}</span>
+                                                <span>{t.name}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })}
+                    </div>
+                );
+            })()}
+
             {toast && (
                 <div className="badge-toast">
                     🏆 {toast}
                 </div>
             )}
+
+            {taskToast && (() => {
+                const task = taskDefs.find(t => t.id === taskToast);
+                return task ? (
+                    <div className="task-toast">
+                        ✓ {task.name}
+                    </div>
+                ) : null;
+            })()}
 
             {showNameInput && (
                 <div className="name-input-overlay">

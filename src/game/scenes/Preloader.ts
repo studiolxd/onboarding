@@ -50,6 +50,7 @@ export class Preloader extends Scene
         });
 
         // Dialog data
+        this.load.json("common-dialogs", "data/common-dialogs.json");
         this.load.json("suvi-dialogs", "data/suvi-dialogs.json");
         this.load.json("hr-dialogs", "data/hr-dialogs.json");
         this.load.json("it-dialogs", "data/it-dialogs.json");

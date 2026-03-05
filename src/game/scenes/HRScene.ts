@@ -18,13 +18,8 @@ export class HRScene extends BaseScene {
   // Dialog data from JSON
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private d: any;
-  private teamConfig: {
-    id: string;
-    offsetX: number;
-    offsetY: number;
-    messages: string[];
-    extraMessages: string[];
-  }[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private teamConfig: any[] = [];
   private roleFunctions: Record<string, { name: string; brief: string; detail: string }[]> = {};
 
   // Scene transition
@@ -195,7 +190,8 @@ export class HRScene extends BaseScene {
 
     // Team member choices
     if (this.teamNpcIds.includes(npcId)) {
-      const tellMore = this.d.teamMemberChoice.options[0]; // "Cuéntame más"
+      const opts = this.resolveGendered(this.d.teamMemberChoice.options) as string[];
+      const tellMore = opts[0]; // "Cuéntame más"
       if (choice === tellMore) {
         const cfg = this.teamConfig.find((c) => c.id === npcId);
         if (!cfg) return false;
@@ -238,9 +234,9 @@ export class HRScene extends BaseScene {
       this.dismissTeam();
       this.triggerHr1Welcome();
     }
-    if (npcId === "hr2") {
+    if (npcId === "hr2" && !this.visitedHr2) {
       this.visitedHr2 = true;
-      EventBus.emit("progress-updated", { visitedHr2: true });
+      EventBus.emit("task-completed", "learn-culture");
     }
     if (npcId === "hr3") {
       this.resetHr3Choice();
@@ -385,7 +381,7 @@ export class HRScene extends BaseScene {
     if (this.hr3FunctionIndex >= funcs.length) {
       if (!this.visitedHr3) {
         this.visitedHr3 = true;
-        EventBus.emit("progress-updated", { visitedHr3: true });
+        EventBus.emit("task-completed", "learn-role");
       }
       const npc = this.npcs.get("hr3");
       if (npc) npc.choice = undefined;
@@ -432,7 +428,11 @@ export class HRScene extends BaseScene {
   }
 
   private teamMemberChoice(): NpcChoice {
-    return this.d.teamMemberChoice;
+    const raw = this.d.teamMemberChoice;
+    return {
+      question: raw.question,
+      options: this.resolveGendered(raw.options) as string[],
+    };
   }
 
   private spawnTeam() {
@@ -455,7 +455,7 @@ export class HRScene extends BaseScene {
       const destY = baseY + cfg.offsetY;
       const spawnY = baseY - 1 + i;
 
-      const npc = this.spawnNpcAt(cfg.id, "player-down", spawnX, spawnY, cfg.messages, this.teamMemberChoice());
+      const npc = this.spawnNpcAt(cfg.id, "player-down", spawnX, spawnY, this.resolveGendered(cfg.messages), this.teamMemberChoice());
 
       this.time.delayedCall(i * 300, () => {
         const path = this.findPathForNpc(spawnX, spawnY, destX, destY, npc);
@@ -489,7 +489,7 @@ export class HRScene extends BaseScene {
       const destY = baseY + cfg.offsetY;
       const spawnY = baseY - 1 + i;
 
-      const npc = this.spawnNpcAt(cfg.id, "player-down", spawnX, spawnY, cfg.messages, this.teamMemberChoice());
+      const npc = this.spawnNpcAt(cfg.id, "player-down", spawnX, spawnY, this.resolveGendered(cfg.messages), this.teamMemberChoice());
 
       this.time.delayedCall(i * 300, () => {
         const path = this.findPathForNpc(spawnX, spawnY, destX, destY, npc);
@@ -652,7 +652,7 @@ export class HRScene extends BaseScene {
   private triggerHr1Welcome() {
     if (this.visitedHr1) return;
     this.visitedHr1 = true;
-    EventBus.emit("progress-updated", { visitedHr1: true });
+    EventBus.emit("task-completed", "meet-team");
 
     this.time.delayedCall(1500, () => {
       const welcome = this.d.hr1.welcome;

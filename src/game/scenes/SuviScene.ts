@@ -87,7 +87,7 @@ export class SuviScene extends BaseScene {
   protected onDialogClosed(npcId: string): void {
     if (npcId === "ncp1" && !this.visitedSuvi) {
       this.visitedSuvi = true;
-      EventBus.emit("progress-updated", { visitedSuvi: true });
+      EventBus.emit("task-completed", "meet-director");
       this.goToHR();
       return;
     }
@@ -104,7 +104,7 @@ export class SuviScene extends BaseScene {
 
   private continueAfterGender() {
     this.visitedSuvi = true;
-    EventBus.emit("progress-updated", { visitedSuvi: true });
+    EventBus.emit("task-completed", "meet-director");
     this.pendingGoToHR = true;
     this.talkQueue = this.d.afterGender;
     this.talkIndex = 0;

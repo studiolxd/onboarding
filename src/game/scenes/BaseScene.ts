@@ -82,13 +82,25 @@ export abstract class BaseScene extends Scene {
   }
 
   protected getGreeting(): string {
-    const name = this.getName();
-    switch (this.genderPref) {
-      case "masculino": return `Bienvenido, ${name}`;
-      case "femenino": return `Bienvenida, ${name}`;
-      case "neutro": return `Te damos la bienvenida, ${name}`;
-      default: return `¡Hola, ${name}!`;
+    const g = this.cache.json.get("common-dialogs").greeting;
+    const template = this.genderPref === "masculino" ? g.m
+      : this.genderPref === "femenino" ? g.f
+      : this.genderPref === "neutro" ? g.n
+      : g.default;
+    return template.replace(/\{name\}/g, this.getName());
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected resolveGendered(data: any): any {
+    if (data && typeof data === "object" && !Array.isArray(data) && ("m" in data || "f" in data || "n" in data)) {
+      switch (this.genderPref) {
+        case "masculino": return data.m;
+        case "femenino": return data.f;
+        case "neutro": return data.n;
+        default: return data.m;
+      }
     }
+    return data;
   }
 
   // ─── Setup helpers (called from concrete scene's create()) ───
@@ -232,6 +244,12 @@ export abstract class BaseScene extends Scene {
   }
 
   protected setupBaseEventListeners() {
+    // Emit task definitions from common-dialogs.json
+    const commonData = this.cache.json.get("common-dialogs");
+    if (commonData?.tasks) {
+      EventBus.emit("task-defs-loaded", commonData.tasks);
+    }
+
     EventBus.on("learner-name", (name: string) => {
       this.learnerName = name;
     });
@@ -248,6 +266,9 @@ export abstract class BaseScene extends Scene {
     });
     EventBus.on("restore-gender", (pref: "masculino" | "femenino" | "neutro") => {
       this.genderPref = pref;
+    });
+    EventBus.on("restore-talked-to", (ids: string[]) => {
+      for (const id of ids) this.talkedTo.add(id);
     });
     EventBus.on("restore-progress", (progress: { visitedSuvi?: boolean; visitedHr1?: boolean; visitedHr2?: boolean; visitedHr3?: boolean }) => {
       if (progress.visitedSuvi) this.visitedSuvi = true;
@@ -284,6 +305,7 @@ export abstract class BaseScene extends Scene {
       EventBus.off("restore-role");
       EventBus.off("restore-display-name");
       EventBus.off("restore-gender");
+      EventBus.off("restore-talked-to");
       EventBus.off("restore-progress");
       EventBus.off("navigate-to-scene");
       EventBus.off("name-input-confirmed");
@@ -834,7 +856,7 @@ export abstract class BaseScene extends Scene {
     this.choiceScrollTop = 0;
 
     this.dialogText?.setText(this.activeChoice.question);
-    this.dialogHint?.setText("Toca una opción");
+    this.dialogHint?.setText(this.cache.json.get("common-dialogs").choiceHint);
 
     const baseY = this.dialogText ? this.dialogText.y + this.dialogText.height + 4 : 0;
     const visibleCount = Math.min(choice.options.length, this.MAX_VISIBLE_CHOICES);
@@ -973,6 +995,7 @@ export abstract class BaseScene extends Scene {
 
     if (closedNpcId) {
       this.talkedTo.add(closedNpcId);
+      EventBus.emit("talked-to-updated", Array.from(this.talkedTo));
       EventBus.emit("npc-dialog-complete", closedNpcId);
 
       const tileX = Math.floor(this.player.x / this.TILE);

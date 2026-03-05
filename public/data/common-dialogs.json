@@ -1,0 +1,17 @@
+{
+  "greeting": {
+    "m": "Bienvenido, {name}",
+    "f": "Bienvenida, {name}",
+    "n": "Te damos la bienvenida, {name}",
+    "default": "¡Hola, {name}!"
+  },
+  "choiceHint": "Toca una opción",
+  "tasks": [
+    { "id": "meet-director", "name": "Preséntate al director", "scene": "SuviScene" },
+    { "id": "meet-team", "name": "Conoce al equipo", "scene": "HRScene" },
+    { "id": "learn-culture", "name": "Conoce nuestra forma de trabajar", "scene": "HRScene" },
+    { "id": "learn-role", "name": "Descubre las funciones de tu rol", "scene": "HRScene", "requires": ["meet-team", "learn-culture"] },
+    { "id": "meet-it", "name": "Conoce las herramientas", "scene": "ITScene" },
+    { "id": "try-tools", "name": "Prueba las herramientas", "scene": "ITScene", "requires": ["meet-it"] }
+  ]
+}

@@ -173,6 +173,114 @@ body {
     100% { opacity: 0; }
 }
 
+/* ─── Tasks ─── */
+
+.tasks-btn {
+    position: absolute;
+    top: 80px;
+    right: 12px;
+    z-index: 100;
+    padding: 6px 14px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #6ec86e;
+    border: 1px solid #6ec86e;
+    font-family: monospace;
+    font-size: 13px;
+    cursor: pointer;
+    image-rendering: pixelated;
+    transition: background 0.2s;
+}
+
+.tasks-btn:hover {
+    background: rgba(110, 200, 110, 0.2);
+}
+
+.tasks-panel {
+    position: absolute;
+    top: 116px;
+    right: 12px;
+    z-index: 100;
+    width: 280px;
+    max-height: 60vh;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #6ec86e;
+    font-family: monospace;
+    color: #fff;
+}
+
+.tasks-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(110, 200, 110, 0.3);
+    font-size: 14px;
+    color: #6ec86e;
+}
+
+.tasks-close {
+    background: none;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+.tasks-close:hover {
+    color: #fff;
+}
+
+.task-group {
+    padding: 4px 0;
+}
+
+.task-group-title {
+    padding: 6px 12px 2px;
+    font-size: 10px;
+    color: #6ec86e;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.task-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #ccc;
+}
+
+.task-item--done {
+    color: #888;
+    text-decoration: line-through;
+}
+
+.task-check {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.task-toast {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    padding: 12px 24px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #6ec86e;
+    color: #6ec86e;
+    font-family: monospace;
+    font-size: 16px;
+    animation: badge-toast-anim 3s ease-in-out forwards;
+    pointer-events: none;
+}
+
 /* ─── Navigation Map ─── */
 
 .nav-map-btn {
