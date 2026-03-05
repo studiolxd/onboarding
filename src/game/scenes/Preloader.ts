@@ -72,7 +72,7 @@ export class Preloader extends Scene
     create ()
     {
         this.createAnims();
-        this.scene.start('BrandingScene');
+        this.scene.start('SuviScene');
     }
 
     private createAnims() {

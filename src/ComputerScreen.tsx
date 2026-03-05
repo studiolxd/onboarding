@@ -63,12 +63,15 @@ export function ComputerScreen() {
 
     const handleSeeking = useCallback(() => {
         const video = videoRef.current;
-        if (!video) return;
+        if (!video || seekingRef.current) return;
         if (video.currentTime > maxWatchedRef.current + 0.5) {
             seekingRef.current = true;
             video.currentTime = maxWatchedRef.current;
-            seekingRef.current = false;
         }
+    }, []);
+
+    const handleSeeked = useCallback(() => {
+        seekingRef.current = false;
     }, []);
 
     const handleEnded = useCallback(() => {
@@ -108,6 +111,7 @@ export function ComputerScreen() {
                 autoPlay
                 onTimeUpdate={handleTimeUpdate}
                 onSeeking={handleSeeking}
+                onSeeked={handleSeeked}
                 onEnded={handleEnded}
             />
         </div>

@@ -345,7 +345,7 @@ export class PRLScene extends BaseScene {
     const playerTileY = Math.floor(this.player.y / this.TILE);
     const entryX = this.getOffscreenLeft();
 
-    const hr1 = this.spawnNpcAt("hr1-prl", "npc1-down", entryX, playerTileY, this.dHr1.medicalReview);
+    const hr1 = this.spawnNpcAt("hr1", "npc1-down", entryX, playerTileY, this.dHr1.medicalReview);
     this.hr1Npc = hr1;
 
     const destX = playerTileX - 1;
