@@ -94,14 +94,30 @@ export class ITScene extends BaseScene {
     );
     secNpc.walking = false;
 
-    // Listen for video-watched events
+    // Map video IDs to task IDs
+    const videoTaskMap: Record<string, string> = {
+      nextcloud: "watch-nextcloud",
+      frappe: "watch-frappe",
+      fichar: "watch-fichar",
+      ausencia: "watch-ausencia",
+      turno: "watch-turno",
+    };
+
+    // Listen for video-watched events — queue task completion for when overlay closes
+    const pendingTasks: string[] = [];
     const onVideoWatched = (videoId: string) => {
       this.watchedVideos.add(videoId);
+      const taskId = videoTaskMap[videoId];
+      if (taskId) pendingTasks.push(taskId);
       this.checkPhaseTransition();
     };
-    // Listen for computer-close to trigger phase actions
-    const onComputerClose = () => {
-      this.handleComputerClosed();
+    // When a video is closed, emit pending tasks and re-open the computer app list
+    const onVideoClose = () => {
+      for (const taskId of pendingTasks) {
+        EventBus.emit("task-completed", taskId);
+      }
+      pendingTasks.length = 0;
+      this.reopenComputerDialog();
     };
     // Restore watched videos from saved state
     const onRestoreWatched = (ids: string[]) => {
@@ -110,12 +126,12 @@ export class ITScene extends BaseScene {
     };
 
     EventBus.on("video-watched", onVideoWatched);
-    EventBus.on("computer-close", onComputerClose);
+    EventBus.on("computer-video-closed", onVideoClose);
     EventBus.on("restore-watched-videos", onRestoreWatched);
 
     this.events.on("shutdown", () => {
       EventBus.off("video-watched", onVideoWatched);
-      EventBus.off("computer-close", onComputerClose);
+      EventBus.off("computer-video-closed", onVideoClose);
       EventBus.off("restore-watched-videos", onRestoreWatched);
     });
 
@@ -134,7 +150,7 @@ export class ITScene extends BaseScene {
       this.computerPhase = 6; // all done
     } else if (w.has("fichar")) {
       this.computerPhase = 4; // ausencia+turno unlocked
-    } else if (w.has("nextcloud")) {
+    } else if (w.has("nextcloud") && w.has("frappe")) {
       this.computerPhase = 2; // fichar unlocked
     }
   }
@@ -159,13 +175,13 @@ export class ITScene extends BaseScene {
       options.push("Fichar", "Abrir Nextcloud", "Abrir Frappe");
     }
 
-    options.push("Apagar");
+    options.push("Apagar ordenador");
     return { question: "¿Qué aplicación quieres abrir?", options };
   }
 
   /** Check if a video completion triggers a phase change. */
   private checkPhaseTransition() {
-    if (this.computerPhase === 0 && this.watchedVideos.has("nextcloud")) {
+    if (this.computerPhase === 0 && this.watchedVideos.has("nextcloud") && this.watchedVideos.has("frappe")) {
       this.computerPhase = 1; // waiting for computer close
     }
     if (this.computerPhase === 2 && this.watchedVideos.has("fichar")) {
@@ -176,18 +192,22 @@ export class ITScene extends BaseScene {
     }
   }
 
-  /** Handle computer overlay being closed — trigger NPC2 actions based on phase. */
-  private handleComputerClosed() {
+  /** Handle computer shutdown — trigger NPC2 actions based on phase. Returns true if a dialog was opened. */
+  private handleComputerClosed(): boolean {
     if (this.computerPhase === 1) {
-      // Nextcloud watched, spawn HR NPC2 and deliver fichaIntro
+      // Nextcloud+Frappe watched, spawn HR NPC2 and deliver fichaIntro (async — dialog closes first)
       this.spawnHrNpc2AndDeliver(this.d2.fichaIntro, "hr2-ficha", () => {
         this.computerPhase = 2;
+        EventBus.emit("task-completed", "learn-fichar");
       });
+      return false;
     } else if (this.computerPhase === 3) {
       // Fichar watched, HR NPC2 (already present) delivers flexibleIntro
       this.deliverHrNpc2Dialog(this.d2.flexibleIntro, "hr2-flexible", () => {
         this.computerPhase = 4;
+        EventBus.emit("task-completed", "learn-flexible");
       });
+      return true;
     } else if (this.computerPhase === 5) {
       // All videos watched, HR NPC2 delivers farewell + badge
       this.deliverHrNpc2Dialog(this.d2.farewell, "hr2-farewell", () => {
@@ -195,6 +215,16 @@ export class ITScene extends BaseScene {
         const badgeData = this.cache.json.get("it-dialogs").badges["internal-apps"];
         EventBus.emit("badge-earned", badgeData);
       });
+      return true;
+    }
+    return false;
+  }
+
+  /** Re-open the computer app list after closing a video. */
+  private reopenComputerDialog() {
+    const computer = this.npcs.get("computer");
+    if (computer) {
+      this.openDialog(computer);
     }
   }
 
@@ -332,7 +362,9 @@ export class ITScene extends BaseScene {
         EventBus.emit("computer-open-app", "turno");
         return false;
       }
-      return false; // "Apagar" — close dialog
+      // "Apagar ordenador" — close dialog and check phase transitions
+      if (this.handleComputerClosed()) return true;
+      return false;
     }
 
     if (npcId !== "it-npc") return false;

@@ -11,7 +11,11 @@
     { "id": "meet-team", "name": "Conoce al equipo", "scene": "HRScene" },
     { "id": "learn-culture", "name": "Conoce nuestra forma de trabajar", "scene": "HRScene" },
     { "id": "learn-role", "name": "Descubre las funciones de tu rol", "scene": "HRScene", "requires": ["meet-team", "learn-culture"] },
-    { "id": "meet-it", "name": "Conoce las herramientas", "scene": "ITScene" },
-    { "id": "try-tools", "name": "Prueba las herramientas", "scene": "ITScene", "requires": ["meet-it"] }
+    { "id": "meet-it", "name": "Conoce las herramientas internas", "scene": "ITScene" },
+    { "id": "watch-nextcloud", "name": "Visualiza el vídeo de Nextcloud", "scene": "ITScene", "requires": ["meet-it"] },
+    { "id": "watch-frappe", "name": "Visualiza el vídeo de Frappe", "scene": "ITScene", "requires": ["meet-it"] },
+    { "id": "watch-fichar", "name": "Visualiza el vídeo de fichar", "scene": "ITScene", "requires": ["learn-fichar"] },
+    { "id": "watch-ausencia", "name": "Visualiza el vídeo de ausencias", "scene": "ITScene", "requires": ["learn-flexible"] },
+    { "id": "watch-turno", "name": "Visualiza el vídeo de turnos", "scene": "ITScene", "requires": ["learn-flexible"] }
   ]
 }

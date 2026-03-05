@@ -42,7 +42,6 @@ function GameWithScorm() {
     const [allHrDone, setAllHrDone] = useState(false);
     const [taskDefs, setTaskDefs] = useState<GameTask[]>([]);
     const [completedTasks, setCompletedTasks] = useState<string[]>([]);
-    const [showTasks, setShowTasks] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [sfxEnabled, setSfxEnabled] = useState(true);
     const [dialogAudioEnabled, setDialogAudioEnabled] = useState(true);
@@ -406,7 +405,7 @@ function GameWithScorm() {
 
             <button
                 className="settings-btn"
-                onClick={() => { setShowSettings(!showSettings); setShowNav(false); setShowBadges(false); setShowTasks(false); }}
+                onClick={() => { setShowSettings(!showSettings); setShowNav(false); setShowBadges(false); }}
             >
                 Opciones
             </button>
@@ -439,7 +438,7 @@ function GameWithScorm() {
             <button
                 className="nav-map-btn"
                 disabled={!visitedSuvi}
-                onClick={() => { setShowNav(!showNav); setShowBadges(false); setShowTasks(false); setShowSettings(false); }}
+                onClick={() => { setShowNav(!showNav); setShowBadges(false); setShowSettings(false); }}
             >
                 Mapa
             </button>
@@ -470,7 +469,7 @@ function GameWithScorm() {
 
             <button
                 className="badges-btn"
-                onClick={() => { setShowBadges(!showBadges); setShowNav(false); setShowTasks(false); setShowSettings(false); }}
+                onClick={() => { setShowBadges(!showBadges); setShowNav(false); setShowSettings(false); }}
             >
                 Badges{badges.length > 0 && ` (${badges.length})`}
             </button>
@@ -499,37 +498,11 @@ function GameWithScorm() {
                 </div>
             )}
 
-            {(() => {
+            {taskDefs.length > 0 && (() => {
                 const visible = taskDefs.filter(t => t.scene === currentScene && (!t.requires || t.requires.every(r => completedTasks.includes(r))));
-                const done = visible.filter(t => completedTasks.includes(t.id)).length;
-                if (visible.length === 0 || done >= visible.length) return null;
-                return (
-                    <button
-                        className="tasks-btn"
-                        onClick={() => { setShowTasks(!showTasks); setShowBadges(false); setShowNav(false); setShowSettings(false); }}
-                    >
-                        Tareas ({done}/{visible.length})
-                    </button>
-                );
-            })()}
-
-            {showTasks && taskDefs.length > 0 && (() => {
-                const sceneLabels: Record<string, string> = {
-                    SuviScene: 'Director',
-                    HRScene: 'Recursos Humanos',
-                    ITScene: 'IT',
-                };
-                const sceneTasks = taskDefs.filter(t => t.scene === currentScene);
-                const visible = sceneTasks.filter(t =>
-                    !t.requires || t.requires.every(r => completedTasks.includes(r))
-                );
                 if (visible.length === 0) return null;
                 return (
                     <div className="tasks-panel">
-                        <div className="tasks-panel-header">
-                            <span>{sceneLabels[currentScene] || currentScene} — Tareas</span>
-                            <button className="tasks-close" onClick={() => setShowTasks(false)}>X</button>
-                        </div>
                         {visible.map(t => {
                             const done = completedTasks.includes(t.id);
                             return (

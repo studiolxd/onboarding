@@ -1,37 +1,32 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { EventBus } from './game/EventBus';
 
-const APPS: Record<string, { name: string; video: string; instructions: string[] }> = {
+const APPS: Record<string, { name: string; video: string }> = {
     nextcloud: {
         name: 'Nextcloud',
         video: 'assets/videos/nextcloud1.mp4',
-        instructions: ['Introduce tus credenciales'],
     },
     frappe: {
         name: 'Frappe',
         video: 'assets/videos/frappe1.mp4',
-        instructions: ['Introduce tus credenciales'],
     },
     fichar: {
         name: 'Registrar jornada',
         video: 'assets/videos/registrar_jornada.mp4',
-        instructions: ['Registra tu entrada y salida'],
     },
     ausencia: {
         name: 'Solicitar ausencia',
         video: 'assets/videos/solicitar_ausencia.mp4',
-        instructions: ['Solicita tus vacaciones o ausencias'],
     },
     turno: {
         name: 'Solicitar turno',
         video: 'assets/videos/solicitar_turno.mp4',
-        instructions: ['Asigna tus dias de trabajo'],
     },
 };
 
 export function ComputerScreen() {
     const [appId, setAppId] = useState<string | null>(null);
-    const [watchedVideos, setWatchedVideos] = useState<Set<string>>(new Set());
+    const [, setWatchedVideos] = useState<Set<string>>(new Set());
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const maxWatchedRef = useRef(0);
     const seekingRef = useRef(false);
@@ -51,10 +46,10 @@ export function ComputerScreen() {
         const onClose = () => setAppId(null);
 
         EventBus.on('computer-open-app', onOpen);
-        EventBus.on('computer-close', onClose);
+        EventBus.on('computer-video-closed', onClose);
         return () => {
             EventBus.off('computer-open-app', onOpen);
-            EventBus.off('computer-close', onClose);
+            EventBus.off('computer-video-closed', onClose);
         };
     }, []);
 
@@ -90,21 +85,16 @@ export function ComputerScreen() {
     if (!appId || !APPS[appId]) return null;
 
     const app = APPS[appId];
-    const alreadyWatched = watchedVideos.has(appId);
-    const currentInstruction = app.instructions[0] ?? null;
 
     return (
         <div className="computer-overlay">
             <div className="computer-header">
                 <span className="computer-title">{app.name}</span>
-                <span className="computer-status">
-                    {alreadyWatched ? 'Visto' : 'Sin ver'}
-                </span>
                 <button
                     className="computer-close"
                     onClick={() => {
                         setAppId(null);
-                        EventBus.emit('computer-close');
+                        EventBus.emit('computer-video-closed');
                     }}
                 >
                     X Cerrar
@@ -120,11 +110,6 @@ export function ComputerScreen() {
                 onSeeking={handleSeeking}
                 onEnded={handleEnded}
             />
-            {currentInstruction && (
-                <div className="computer-instruction">
-                    <span>{currentInstruction}</span>
-                </div>
-            )}
         </div>
     );
 }

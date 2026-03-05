@@ -898,7 +898,7 @@ export abstract class BaseScene extends Scene {
     const z = this.ZOOM;
     const sw = this.scale.width;
     const sh = this.scale.height;
-    const boxH = 70;
+    const boxH = 100;
     const pad = 4;
 
     const bgPos = this.screenToHUD(0, sh - boxH * z);
@@ -961,7 +961,7 @@ export abstract class BaseScene extends Scene {
     const z = this.ZOOM;
     const sw = this.scale.width;
     const sh = this.scale.height;
-    const boxH = 70;
+    const boxH = 100;
     const pad = 4;
 
     const bgPos = this.screenToHUD(0, sh - boxH * z);
@@ -991,7 +991,7 @@ export abstract class BaseScene extends Scene {
   protected repositionDialog(w: number, h: number) {
     if (!this.isTalking) return;
     const z = this.ZOOM;
-    const boxH = 70;
+    const boxH = 100;
     const pad = 4;
 
     const bgPos = this.screenToHUD(0, h - boxH * z);
