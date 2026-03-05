@@ -49,7 +49,8 @@ export class Preloader extends Scene
             frameHeight: 64,
         });
 
-        // Dialog data
+        // Dialog data (reset path — these are in public/data/, not public/assets/)
+        this.load.setPath('');
         this.load.json("common-dialogs", "data/common-dialogs.json");
         this.load.json("suvi-dialogs", "data/suvi-dialogs.json");
         this.load.json("hr-dialogs", "data/hr-dialogs.json");
