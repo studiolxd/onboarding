@@ -350,18 +350,19 @@ function GameWithScorm() {
                 </div>
             )}
 
-            <button
-                className="tasks-btn"
-                onClick={() => { setShowTasks(!showTasks); setShowBadges(false); setShowNav(false); }}
-            >
-                Tareas
-                {taskDefs.length > 0 && (() => {
-                    const sceneTasks = taskDefs.filter(t => t.scene === currentScene);
-                    const visible = sceneTasks.filter(t => !t.requires || t.requires.every(r => completedTasks.includes(r)));
-                    const done = visible.filter(t => completedTasks.includes(t.id)).length;
-                    return visible.length > 0 ? ` (${done}/${visible.length})` : '';
-                })()}
-            </button>
+            {taskDefs.filter(t => t.scene === currentScene && (!t.requires || t.requires.every(r => completedTasks.includes(r)))).length > 0 && (
+                <button
+                    className="tasks-btn"
+                    onClick={() => { setShowTasks(!showTasks); setShowBadges(false); setShowNav(false); }}
+                >
+                    Tareas
+                    {(() => {
+                        const visible = taskDefs.filter(t => t.scene === currentScene && (!t.requires || t.requires.every(r => completedTasks.includes(r))));
+                        const done = visible.filter(t => completedTasks.includes(t.id)).length;
+                        return ` (${done}/${visible.length})`;
+                    })()}
+                </button>
+            )}
 
             {showTasks && taskDefs.length > 0 && (() => {
                 const sceneLabels: Record<string, string> = {
@@ -373,25 +374,22 @@ function GameWithScorm() {
                 const visible = sceneTasks.filter(t =>
                     !t.requires || t.requires.every(r => completedTasks.includes(r))
                 );
+                if (visible.length === 0) return null;
                 return (
                     <div className="tasks-panel">
                         <div className="tasks-panel-header">
                             <span>{sceneLabels[currentScene] || currentScene} — Tareas</span>
                             <button className="tasks-close" onClick={() => setShowTasks(false)}>X</button>
                         </div>
-                        {visible.length === 0 ? (
-                            <div className="task-item">No hay tareas en esta escena</div>
-                        ) : (
-                            visible.map(t => {
-                                const done = completedTasks.includes(t.id);
-                                return (
-                                    <div key={t.id} className={`task-item${done ? ' task-item--done' : ''}`}>
-                                        <span className="task-check">{done ? '\u2713' : '\u25CB'}</span>
-                                        <span>{t.name}</span>
-                                    </div>
-                                );
-                            })
-                        )}
+                        {visible.map(t => {
+                            const done = completedTasks.includes(t.id);
+                            return (
+                                <div key={t.id} className={`task-item${done ? ' task-item--done' : ''}`}>
+                                    <span className="task-check">{done ? '\u2713' : '\u25CB'}</span>
+                                    <span>{t.name}</span>
+                                </div>
+                            );
+                        })}
                     </div>
                 );
             })()}
