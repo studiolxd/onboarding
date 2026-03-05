@@ -20,6 +20,7 @@ export class CoffeeScene extends BaseScene {
     this.setupBaseEventListeners();
 
     const d = this.cache.json.get("coffee-dialogs");
+    this.annotateAudio(d["suvi-coffee"], "coffee");
 
     this.spawnNpc(objLayer, "suvi-coffee", "npc1-down", () => {
       return d["suvi-coffee"].messages;

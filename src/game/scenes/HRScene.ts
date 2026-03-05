@@ -50,6 +50,42 @@ export class HRScene extends BaseScene {
     this.teamNpcIds = this.teamConfig.map((c: { id: string }) => c.id);
     this.roleFunctions = this.d.roleFunctions;
 
+    // Annotate dialog arrays with audio paths
+    this.annotateAudio(this.d.hr1, "hr-hr1");
+    // Override welcome.messages path (nested becomes flat)
+    if (this.d.hr1.welcome?.messages) {
+      (this.d.hr1.welcome.messages as any)._audio = "hr-hr1-welcome";
+    }
+    this.annotateAudio(this.d.hr2, "hr-hr2");
+    // Override topic audio paths (avoid spaces in filenames)
+    if (this.d.hr2.topics) {
+      const topicMap: Record<string, string> = {
+        "Teletrabajo": "hr-hr2-teletrabajo",
+        "Trabajo flexible": "hr-hr2-flexible",
+        "Trabajo por proyectos": "hr-hr2-proyectos",
+      };
+      for (const [key, prefix] of Object.entries(topicMap)) {
+        if (this.d.hr2.topics[key]) {
+          (this.d.hr2.topics[key] as any)._audio = prefix;
+        }
+      }
+    }
+    this.annotateAudio(this.d.hr3, "hr-hr3");
+    this.annotateAudio(this.d.finale, "hr-finale");
+    // Team members
+    for (const cfg of this.teamConfig) {
+      if (Array.isArray(cfg.messages)) {
+        (cfg.messages as any)._audio = `hr-${cfg.id}`;
+      } else {
+        if (cfg.messages.m) (cfg.messages.m as any)._audio = `hr-${cfg.id}-m`;
+        if (cfg.messages.f) (cfg.messages.f as any)._audio = `hr-${cfg.id}-f`;
+        if (cfg.messages.n) (cfg.messages.n as any)._audio = `hr-${cfg.id}-n`;
+      }
+      if (cfg.extraMessages) {
+        (cfg.extraMessages as any)._audio = `hr-${cfg.id}-extra`;
+      }
+    }
+
     // HR-specific restore: team state & finale
     if (this.visitedHr1) {
       this.teamSpawned = true;
@@ -105,7 +141,13 @@ export class HRScene extends BaseScene {
         const redirect = this.visitedHr1
           ? this.d.hr2.redirectHr3
           : this.d.hr2.redirectHr1;
-        return [...this.d.hr2.firstVisit, redirect];
+        const msgs = [...this.d.hr2.firstVisit, redirect];
+        const redirectKey = this.visitedHr1 ? "hr-hr2-redirectHr3-0" : "hr-hr2-redirectHr1-0";
+        (msgs as any)._audioKeys = [
+          ...this.audioKeysFrom(this.d.hr2.firstVisit),
+          redirectKey,
+        ];
+        return msgs;
       }
       return this.d.hr2.returnVisit;
     }, { tileX: 20, tileY: 16 }, () => {
@@ -153,6 +195,7 @@ export class HRScene extends BaseScene {
     // Spawn Suvi offscreen left, one tile above
     const suviY = playerTileY - 1;
     const suviDialogs = this.cache.json.get("suvi-dialogs").ncp1;
+    this.annotateAudio(suviDialogs, "suvi");
     const suvi = this.spawnNpcAt("suvi-escort", "npc1-down", entryX, suviY, suviDialogs.hrIntro);
 
     // Build paths to walk in
@@ -196,10 +239,9 @@ export class HRScene extends BaseScene {
     if (npcId === "hr2") {
       if (choice === this.d.hr2.choice.options[0]) return false; // "Nada, gracias"
       const topics: Record<string, string[]> = this.d.hr2.topics;
-      this.talkQueue = topics[choice] ?? [];
-      if (this.talkQueue.length === 0) return false;
-      this.talkIndex = 0;
-      this.showLine();
+      const topicMsgs = topics[choice] ?? [];
+      if (topicMsgs.length === 0) return false;
+      this.setTalkWithAudio(topicMsgs);
       return true;
     }
 
@@ -212,9 +254,7 @@ export class HRScene extends BaseScene {
         if (!cfg) return false;
         const npc = this.npcs.get(npcId);
         if (npc) npc.choice = undefined;
-        this.talkQueue = cfg.extraMessages;
-        this.talkIndex = 0;
-        this.showLine();
+        this.setTalkWithAudio(cfg.extraMessages);
         return true;
       }
       return false;
@@ -327,7 +367,9 @@ export class HRScene extends BaseScene {
       const fn = funcs[this.hr3FunctionIndex];
       if (fn) {
         this.hr3FunctionIndex++;
+        const roleKey = this.roleAudioKey();
         this.talkQueue = [fn.detail];
+        this.audioKeys = [`hr-fn-${roleKey}-${this.hr3FunctionIndex - 1}-detail-0`];
         this.talkIndex = 0;
         this.showLine();
         this.prepareNextFunctionChoice();
@@ -365,6 +407,7 @@ export class HRScene extends BaseScene {
           }
         }
         this.talkQueue = [hr3.roleSelected.replace("{role}", choice)];
+        this.audioKeys = ["hr-hr3-roleSelected-0"];
         this.talkIndex = 0;
         this.showLine();
       } else {
@@ -406,12 +449,15 @@ export class HRScene extends BaseScene {
         description: `Tu rol: ${this.learnerRole}`,
       });
       this.talkQueue = [this.d.hr3.allFunctionsDone];
+      this.audioKeys = ["hr-hr3-allFunctionsDone-0"];
       this.talkIndex = 0;
       this.showLine();
       return;
     }
     const fn = funcs[this.hr3FunctionIndex];
+    const roleKey = this.roleAudioKey();
     this.talkQueue = [`${fn.name}: ${fn.brief}`];
+    this.audioKeys = [`hr-fn-${roleKey}-${this.hr3FunctionIndex}-brief-0`];
     this.talkIndex = 0;
     this.showLine();
     const npc = this.npcs.get("hr3");
@@ -434,6 +480,13 @@ export class HRScene extends BaseScene {
         return this.d.hr3.roleChoice;
       };
     }
+  }
+
+  /** Map current role to a short key for audio file naming. */
+  private roleAudioKey(): string {
+    if (this.learnerRole === "Diseñador instruccional") return "di";
+    if (this.learnerRole === "Diseñador gráfico") return "dg";
+    return "prog";
   }
 
   // ─── Team management ───
@@ -688,9 +741,13 @@ export class HRScene extends BaseScene {
       const redirect = !this.visitedHr2
         ? welcome.redirectHr2
         : welcome.redirectHr3;
+      const redirectKey = !this.visitedHr2 ? "hr-hr1-redirectHr2-0" : "hr-hr1-redirectHr3-0";
       this.openForcedDialog("hr1-welcome", [
         ...welcome.messages,
         redirect,
+      ], [
+        ...this.audioKeysFrom(welcome.messages),
+        redirectKey,
       ]);
     });
   }
@@ -724,13 +781,14 @@ export class HRScene extends BaseScene {
         suvi.walking = false;
         suvi.choice = this.d.finale.choice;
         this.endCutscene();
-        this.openForcedDialog("suvi-finale", this.resolveMessages(this.d.finale.greeting));
+        this.openForcedDialog("suvi-finale", this.resolveMessages(this.d.finale.greeting), this.audioKeysFrom(this.d.finale.greeting));
       });
     });
   }
 
   private goToIT() {
     this.startCutscene();
+    this.stopDialogAudio();
     // Close dialog if still open
     if (this.isTalking) {
       this.dialogBg?.destroy();

@@ -26,6 +26,7 @@ export class SuviScene extends BaseScene {
     this.setupBaseEventListeners();
 
     this.d = this.cache.json.get("suvi-dialogs").ncp1;
+    this.annotateAudio(this.d, "suvi");
 
     this.spawnNpc(objLayer, "ncp1", "npc1-down", () => {
       if (!this.visitedSuvi) {
@@ -115,13 +116,12 @@ export class SuviScene extends BaseScene {
     this.visitedSuvi = true;
     EventBus.emit("task-completed", "meet-director");
     this.pendingGoToHR = true;
-    this.talkQueue = this.d.afterGender;
-    this.talkIndex = 0;
-    this.showLine();
+    this.setTalkWithAudio(this.d.afterGender);
   }
 
   private goToHR() {
     this.startCutscene();
+    this.stopDialogAudio();
     // Close dialog if still open
     if (this.isTalking) {
       this.dialogBg?.destroy();

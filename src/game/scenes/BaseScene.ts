@@ -65,6 +65,12 @@ export abstract class BaseScene extends Scene {
   /** Restore player input. */
   protected endCutscene() { this.isInCutscene = false; }
 
+  // Dialog audio
+  protected audioKeys: string[] = [];
+  private currentAudio: HTMLAudioElement | null = null;
+  private dialogAudioEnabled = true;
+  protected sfxEnabled = true;
+
   // Text input
   protected isTypingName = false;
   protected typedNameBuffer = "";
@@ -111,6 +117,64 @@ export abstract class BaseScene extends Scene {
       }
     }
     return data;
+  }
+
+  /**
+   * Recursively annotate string arrays in a dialog data object with audio path prefixes.
+   * After calling this, each string[] will have `_audio` property set to `prefix/key`.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected annotateAudio(obj: any, prefix: string) {
+    if (!obj || typeof obj !== "object") return;
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (Array.isArray(val) && val.length > 0 && typeof val[0] === "string") {
+        (val as any)._audio = `${prefix}-${key}`;
+      } else if (val && typeof val === "object" && !Array.isArray(val)) {
+        this.annotateAudio(val, `${prefix}-${key}`);
+      }
+    }
+  }
+
+  /** Extract audio keys from a messages array (uses _audio or _audioKeys annotation). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected audioKeysFrom(messages: any[]): string[] {
+    // Explicit keys take priority (for concatenated arrays)
+    const explicit = (messages as any)._audioKeys;
+    if (explicit) return explicit;
+    const prefix = (messages as any)._audio;
+    if (!prefix) return [];
+    return messages.map((_, i) => `${prefix}-${i}`);
+  }
+
+  /** Set talkQueue with matching audio keys from annotation, then show first line. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected setTalkWithAudio(messages: any[], startIndex = 0) {
+    this.talkQueue = messages;
+    this.audioKeys = this.audioKeysFrom(messages);
+    this.talkIndex = startIndex;
+    this.showLine();
+  }
+
+  /** Play dialog audio for the current line. */
+  protected playDialogAudio() {
+    this.stopDialogAudio();
+    if (!this.dialogAudioEnabled) return;
+    const key = this.audioKeys[this.talkIndex];
+    if (!key) return;
+    const audio = new Audio(`assets/audio/dialogs/${key}.mp3`);
+    audio.onerror = () => {}; // silently ignore missing files
+    audio.play().catch(() => {});
+    this.currentAudio = audio;
+  }
+
+  /** Stop any currently playing dialog audio. */
+  protected stopDialogAudio() {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+      this.currentAudio = null;
+    }
   }
 
   // ─── Setup helpers (called from concrete scene's create()) ───
@@ -297,6 +361,11 @@ export abstract class BaseScene extends Scene {
       EventBus.emit("scene-changed", sceneName);
       this.scene.start(sceneName, this.getTransitionData());
     };
+    const onSettingsChanged = (settings: { sfxEnabled: boolean; dialogAudioEnabled: boolean }) => {
+      this.sfxEnabled = settings.sfxEnabled;
+      this.dialogAudioEnabled = settings.dialogAudioEnabled;
+      if (!this.dialogAudioEnabled) this.stopDialogAudio();
+    };
 
     EventBus.on("learner-name", onLearnerName);
     EventBus.on("restore-position", onRestorePosition);
@@ -306,13 +375,16 @@ export abstract class BaseScene extends Scene {
     EventBus.on("restore-talked-to", onRestoreTalkedTo);
     EventBus.on("restore-progress", onRestoreProgress);
     EventBus.on("navigate-to-scene", onNavigateToScene);
+    EventBus.on("settings-changed", onSettingsChanged);
 
     // Cleanup on scene shutdown — only remove THIS scene's handlers
     this.events.on("shutdown", () => {
       // Reset dialog state
+      this.stopDialogAudio();
       this.isTalking = false;
       this.talkQueue = [];
       this.talkIndex = 0;
+      this.audioKeys = [];
       this.isChoosing = false;
       this.activeChoice = null;
       this.currentNpcId = null;
@@ -334,6 +406,7 @@ export abstract class BaseScene extends Scene {
       EventBus.off("restore-talked-to", onRestoreTalkedTo);
       EventBus.off("restore-progress", onRestoreProgress);
       EventBus.off("navigate-to-scene", onNavigateToScene);
+      EventBus.off("settings-changed", onSettingsChanged);
       EventBus.off("name-input-confirmed");
     });
   }
@@ -812,7 +885,9 @@ export abstract class BaseScene extends Scene {
     this.isTalking = true;
     this.cursor.setVisible(false);
     this.currentNpcId = npc.id;
-    this.talkQueue = typeof npc.messages === "function" ? npc.messages() : npc.messages;
+    const msgs = typeof npc.messages === "function" ? npc.messages() : npc.messages;
+    this.talkQueue = msgs;
+    this.audioKeys = this.audioKeysFrom(msgs);
     this.talkIndex = 0;
     this.movePath = [];
     this.player.anims.stop();
@@ -848,7 +923,7 @@ export abstract class BaseScene extends Scene {
   }
 
   /** Opens a forced dialog without needing adjacency (e.g. for welcome/finale sequences) */
-  protected openForcedDialog(npcId: string, messages: string[]) {
+  protected openForcedDialog(npcId: string, messages: string[], audioKeys?: string[]) {
     // Close any existing dialog to avoid stacking
     if (this.isTalking) {
       this.dialogBg?.destroy();
@@ -865,6 +940,7 @@ export abstract class BaseScene extends Scene {
     this.isTalking = true;
     this.currentNpcId = npcId;
     this.talkQueue = messages;
+    this.audioKeys = audioKeys ?? this.audioKeysFrom(messages);
     this.talkIndex = 0;
     this.movePath = [];
     this.player.anims.stop();
@@ -930,6 +1006,7 @@ export abstract class BaseScene extends Scene {
   protected showLine() {
     const line = this.resolveText(this.talkQueue[this.talkIndex] ?? "");
     this.dialogText?.setText(line);
+    this.playDialogAudio();
   }
 
   protected advanceDialog() {
@@ -940,6 +1017,7 @@ export abstract class BaseScene extends Scene {
       const choice = npc?.choice;
       const resolvedChoice = typeof choice === "function" ? choice() : choice;
       if (resolvedChoice) {
+        this.stopDialogAudio();
         this.showChoices(resolvedChoice);
       } else {
         this.closeDialog();
@@ -1109,6 +1187,8 @@ export abstract class BaseScene extends Scene {
     this.isTalking = false;
     this.talkQueue = [];
     this.talkIndex = 0;
+    this.audioKeys = [];
+    this.stopDialogAudio();
 
     this.dialogBg?.destroy();
     this.dialogText?.destroy();

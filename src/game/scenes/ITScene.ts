@@ -26,6 +26,11 @@ export class ITScene extends BaseScene {
     this.setupBaseEventListeners();
 
     this.d = this.cache.json.get("it-dialogs")["it-npc"];
+    this.annotateAudio(this.d, "it");
+    // Gendered firstVisit arrays need manual annotation
+    if (this.d.firstVisit.m) (this.d.firstVisit.m as any)._audio = "it-firstVisit-m";
+    if (this.d.firstVisit.f) (this.d.firstVisit.f as any)._audio = "it-firstVisit-f";
+    if (this.d.firstVisit.n) (this.d.firstVisit.n as any)._audio = "it-firstVisit-n";
 
     this.spawnNpc(objLayer, "it-npc", "npc1-down", () => {
       if (!this.visitedIT) {
@@ -64,6 +69,7 @@ export class ITScene extends BaseScene {
     // Spawn Suvi offscreen left, one tile above
     const suviY = playerTileY - 1;
     const suviDialogs = this.cache.json.get("suvi-dialogs").ncp1;
+    this.annotateAudio(suviDialogs, "suvi");
     const suvi = this.spawnNpcAt("suvi-escort", "npc1-down", entryX, suviY, suviDialogs.itIntro);
 
     // Build paths to walk in
@@ -106,6 +112,10 @@ export class ITScene extends BaseScene {
       const npc = this.npcs.get("it-npc");
       if (npc) npc.choice = undefined;
       this.talkQueue = [...this.d.sso, ...this.d.tools];
+      this.audioKeys = [
+        ...this.audioKeysFrom(this.d.sso),
+        ...this.audioKeysFrom(this.d.tools),
+      ];
       this.talkIndex = 0;
       this.showLine();
       return true;
@@ -115,9 +125,7 @@ export class ITScene extends BaseScene {
     if (choice === opts[1]) {
       const npc = this.npcs.get("it-npc");
       if (npc) npc.choice = undefined;
-      this.talkQueue = this.d.tools;
-      this.talkIndex = 0;
-      this.showLine();
+      this.setTalkWithAudio(this.d.tools);
       return true;
     }
 

@@ -42,6 +42,9 @@ function GameWithScorm() {
     const [taskDefs, setTaskDefs] = useState<GameTask[]>([]);
     const [completedTasks, setCompletedTasks] = useState<string[]>([]);
     const [showTasks, setShowTasks] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
+    const [sfxEnabled, setSfxEnabled] = useState(true);
+    const [dialogAudioEnabled, setDialogAudioEnabled] = useState(true);
     const nameInputRef = useRef<HTMLInputElement | null>(null);
 
     // ─── Toast queue ───
@@ -336,6 +339,11 @@ function GameWithScorm() {
         };
     }, [api, addBadge, enqueueToast]);
 
+    // Emit settings changes to Phaser
+    useEffect(() => {
+        EventBus.emit('settings-changed', { sfxEnabled, dialogAudioEnabled });
+    }, [sfxEnabled, dialogAudioEnabled]);
+
     // Announce tasks for the current scene when taskDefs load or scene changes
     useEffect(() => {
         if (taskDefs.length === 0) return;
@@ -380,9 +388,41 @@ function GameWithScorm() {
             <PhaserGame ref={phaserRef} />
 
             <button
+                className="settings-btn"
+                onClick={() => { setShowSettings(!showSettings); setShowNav(false); setShowBadges(false); setShowTasks(false); }}
+            >
+                Opciones
+            </button>
+
+            {showSettings && (
+                <div className="settings-panel">
+                    <div className="settings-panel-header">
+                        <span>Opciones</span>
+                        <button className="settings-close" onClick={() => setShowSettings(false)}>X</button>
+                    </div>
+                    <label className="settings-toggle">
+                        <input
+                            type="checkbox"
+                            checked={dialogAudioEnabled}
+                            onChange={e => setDialogAudioEnabled(e.target.checked)}
+                        />
+                        <span>Sonido de dialogos</span>
+                    </label>
+                    <label className="settings-toggle">
+                        <input
+                            type="checkbox"
+                            checked={sfxEnabled}
+                            onChange={e => setSfxEnabled(e.target.checked)}
+                        />
+                        <span>Efectos de sonido</span>
+                    </label>
+                </div>
+            )}
+
+            <button
                 className="nav-map-btn"
                 disabled={!visitedSuvi}
-                onClick={() => { setShowNav(!showNav); setShowBadges(false); setShowTasks(false); }}
+                onClick={() => { setShowNav(!showNav); setShowBadges(false); setShowTasks(false); setShowSettings(false); }}
             >
                 Mapa
             </button>
@@ -413,7 +453,7 @@ function GameWithScorm() {
 
             <button
                 className="badges-btn"
-                onClick={() => { setShowBadges(!showBadges); setShowNav(false); setShowTasks(false); }}
+                onClick={() => { setShowBadges(!showBadges); setShowNav(false); setShowTasks(false); setShowSettings(false); }}
             >
                 Badges{badges.length > 0 && ` (${badges.length})`}
             </button>
@@ -449,7 +489,7 @@ function GameWithScorm() {
                 return (
                     <button
                         className="tasks-btn"
-                        onClick={() => { setShowTasks(!showTasks); setShowBadges(false); setShowNav(false); }}
+                        onClick={() => { setShowTasks(!showTasks); setShowBadges(false); setShowNav(false); setShowSettings(false); }}
                     >
                         Tareas ({done}/{visible.length})
                     </button>
