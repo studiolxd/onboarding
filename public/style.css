@@ -55,7 +55,7 @@ body {
 
 .badges-btn {
     position: absolute;
-    top: 46px;
+    top: 80px;
     right: 12px;
     z-index: 100;
     padding: 6px 14px;
@@ -75,7 +75,7 @@ body {
 
 .badges-panel {
     position: absolute;
-    top: 82px;
+    top: 114px;
     right: 12px;
     z-index: 100;
     width: 260px;
@@ -180,7 +180,7 @@ body {
 
 .tasks-btn {
     position: absolute;
-    top: 80px;
+    top: 114px;
     right: 12px;
     z-index: 100;
     padding: 6px 14px;
@@ -200,7 +200,7 @@ body {
 
 .tasks-panel {
     position: absolute;
-    top: 116px;
+    top: 148px;
     right: 12px;
     z-index: 100;
     width: 280px;
@@ -273,7 +273,7 @@ body {
 
 .nav-map-btn {
     position: absolute;
-    top: 12px;
+    top: 46px;
     right: 12px;
     z-index: 100;
     padding: 6px 14px;
@@ -299,7 +299,7 @@ body {
 
 .nav-map-panel {
     position: absolute;
-    top: 46px;
+    top: 80px;
     right: 12px;
     z-index: 100;
     width: 200px;
@@ -397,7 +397,7 @@ body {
 .settings-btn {
     position: absolute;
     top: 12px;
-    left: 12px;
+    right: 12px;
     z-index: 100;
     padding: 6px 14px;
     background: rgba(0, 0, 0, 0.75);
@@ -417,7 +417,7 @@ body {
 .settings-panel {
     position: absolute;
     top: 46px;
-    left: 12px;
+    right: 12px;
     z-index: 100;
     width: 220px;
     background: rgba(0, 0, 0, 0.9);
