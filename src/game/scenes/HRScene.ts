@@ -711,6 +711,20 @@ export class HRScene extends BaseScene {
   }
 
   private goToIT() {
+    // Close dialog if still open
+    if (this.isTalking) {
+      this.dialogBg?.destroy();
+      this.dialogText?.destroy();
+      this.dialogHint?.destroy();
+      this.dialogBg = undefined;
+      this.dialogText = undefined;
+      this.dialogHint = undefined;
+      this.choiceTexts.forEach((t) => t.destroy());
+      this.choiceTexts = [];
+      this.destroyArrows();
+      this.isTalking = false;
+    }
+
     const exitX = this.getOffscreenRight();
     const playerTileX = Math.floor(this.player.x / this.TILE);
     const playerTileY = Math.floor(this.player.y / this.TILE);

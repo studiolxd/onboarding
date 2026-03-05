@@ -121,6 +121,20 @@ export class SuviScene extends BaseScene {
   }
 
   private goToHR() {
+    // Close dialog if still open
+    if (this.isTalking) {
+      this.dialogBg?.destroy();
+      this.dialogText?.destroy();
+      this.dialogHint?.destroy();
+      this.dialogBg = undefined;
+      this.dialogText = undefined;
+      this.dialogHint = undefined;
+      this.choiceTexts.forEach((t) => t.destroy());
+      this.choiceTexts = [];
+      this.destroyArrows();
+      this.isTalking = false;
+    }
+
     const suvi = this.npcs.get("ncp1");
     const exitX = this.getOffscreenRight();
     const playerTileX = Math.floor(this.player.x / this.TILE);
