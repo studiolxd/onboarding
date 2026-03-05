@@ -43,6 +43,9 @@ function GameWithScorm() {
     const [allHrDone, setAllHrDone] = useState(false);
     const [allItDone, setAllItDone] = useState(false);
     const [allPrlDone, setAllPrlDone] = useState(false);
+    const [allDisconnectDone, setAllDisconnectDone] = useState(false);
+    const [allHarassmentDone, setAllHarassmentDone] = useState(false);
+    const [allCompanyDone, setAllCompanyDone] = useState(false);
     const [taskDefs, setTaskDefs] = useState<GameTask[]>([]);
     const [completedTasks, setCompletedTasks] = useState<string[]>([]);
     const [showSettings, setShowSettings] = useState(false);
@@ -163,6 +166,9 @@ function GameWithScorm() {
                     if (derivedVisitedHr1 && derivedVisitedHr2 && derivedVisitedHr3) setAllHrDone(true);
                     if (bb.some(b => b.id === 'data-security')) setAllItDone(true);
                     if (bb.some(b => b.id === 'safe-work')) setAllPrlDone(true);
+                    if (bb.some(b => b.id === 'digital-disconnect')) setAllDisconnectDone(true);
+                    if (bb.some(b => b.id === 'equality')) setAllHarassmentDone(true);
+                    if (bb.some(b => b.id === 'company-culture')) setAllCompanyDone(true);
                     if (savedState.currentScene) setCurrentScene(savedState.currentScene);
                     // Restaurar badges
                     if (savedState.badges && savedState.badges.length > 0) {
@@ -235,6 +241,10 @@ function GameWithScorm() {
                 if (newBadges.some(b => b.id === 'data-security')) setAllItDone(true);
                 // Unlock Disconnect when safe-work badge is earned
                 if (newBadges.some(b => b.id === 'safe-work')) setAllPrlDone(true);
+                // Unlock Harassment when digital-disconnect badge is earned
+                if (newBadges.some(b => b.id === 'digital-disconnect')) setAllDisconnectDone(true);
+                if (newBadges.some(b => b.id === 'equality')) setAllHarassmentDone(true);
+                if (newBadges.some(b => b.id === 'company-culture')) setAllCompanyDone(true);
             }
         };
 
@@ -462,13 +472,13 @@ function GameWithScorm() {
 
             <button
                 className="nav-map-btn"
-                disabled={!visitedSuvi}
+                disabled={!visitedSuvi && currentScene === 'SuviScene'}
                 onClick={() => { setShowNav(!showNav); setShowBadges(false); setShowSettings(false); }}
             >
                 Mapa
             </button>
 
-            {showNav && visitedSuvi && (
+            {showNav && (visitedSuvi || currentScene !== 'SuviScene') && (
                 <div className="nav-map-panel">
                     <button
                         className={`nav-map-item${currentScene === 'SuviScene' ? ' nav-map-item--active' : ''}`}
@@ -483,25 +493,46 @@ function GameWithScorm() {
                         RRHH
                     </button>
                     <button
-                        className={`nav-map-item${!allHrDone ? ' nav-map-item--locked' : ''}${currentScene === 'ITScene' ? ' nav-map-item--active' : ''}`}
-                        disabled={!allHrDone}
-                        onClick={() => { if (allHrDone) { EventBus.emit('navigate-to-scene', 'ITScene'); setShowNav(false); } }}
+                        className={`nav-map-item${!allHrDone && currentScene !== 'ITScene' ? ' nav-map-item--locked' : ''}${currentScene === 'ITScene' ? ' nav-map-item--active' : ''}`}
+                        disabled={!allHrDone && currentScene !== 'ITScene'}
+                        onClick={() => { EventBus.emit('navigate-to-scene', 'ITScene'); setShowNav(false); }}
                     >
-                        IT{!allHrDone ? ' (bloqueado)' : ''}
+                        IT{!allHrDone && currentScene !== 'ITScene' ? ' (bloqueado)' : ''}
                     </button>
                     <button
-                        className={`nav-map-item${!allItDone ? ' nav-map-item--locked' : ''}${currentScene === 'PRLScene' ? ' nav-map-item--active' : ''}`}
-                        disabled={!allItDone}
-                        onClick={() => { if (allItDone) { EventBus.emit('navigate-to-scene', 'PRLScene'); setShowNav(false); } }}
+                        className={`nav-map-item${!allItDone && currentScene !== 'PRLScene' ? ' nav-map-item--locked' : ''}${currentScene === 'PRLScene' ? ' nav-map-item--active' : ''}`}
+                        disabled={!allItDone && currentScene !== 'PRLScene'}
+                        onClick={() => { EventBus.emit('navigate-to-scene', 'PRLScene'); setShowNav(false); }}
                     >
-                        PRL{!allItDone ? ' (bloqueado)' : ''}
+                        PRL{!allItDone && currentScene !== 'PRLScene' ? ' (bloqueado)' : ''}
                     </button>
                     <button
-                        className={`nav-map-item${!allPrlDone ? ' nav-map-item--locked' : ''}${currentScene === 'DisconnectScene' ? ' nav-map-item--active' : ''}`}
-                        disabled={!allPrlDone}
-                        onClick={() => { if (allPrlDone) { EventBus.emit('navigate-to-scene', 'DisconnectScene'); setShowNav(false); } }}
+                        className={`nav-map-item${!allPrlDone && currentScene !== 'DisconnectScene' ? ' nav-map-item--locked' : ''}${currentScene === 'DisconnectScene' ? ' nav-map-item--active' : ''}`}
+                        disabled={!allPrlDone && currentScene !== 'DisconnectScene'}
+                        onClick={() => { EventBus.emit('navigate-to-scene', 'DisconnectScene'); setShowNav(false); }}
                     >
-                        Desconexión{!allPrlDone ? ' (bloqueado)' : ''}
+                        Desconexión{!allPrlDone && currentScene !== 'DisconnectScene' ? ' (bloqueado)' : ''}
+                    </button>
+                    <button
+                        className={`nav-map-item${!allDisconnectDone && currentScene !== 'HarassmentScene' ? ' nav-map-item--locked' : ''}${currentScene === 'HarassmentScene' ? ' nav-map-item--active' : ''}`}
+                        disabled={!allDisconnectDone && currentScene !== 'HarassmentScene'}
+                        onClick={() => { EventBus.emit('navigate-to-scene', 'HarassmentScene'); setShowNav(false); }}
+                    >
+                        Igualdad{!allDisconnectDone && currentScene !== 'HarassmentScene' ? ' (bloqueado)' : ''}
+                    </button>
+                    <button
+                        className={`nav-map-item${!allHarassmentDone && currentScene !== 'CompanyScene' ? ' nav-map-item--locked' : ''}${currentScene === 'CompanyScene' ? ' nav-map-item--active' : ''}`}
+                        disabled={!allHarassmentDone && currentScene !== 'CompanyScene'}
+                        onClick={() => { EventBus.emit('navigate-to-scene', 'CompanyScene'); setShowNav(false); }}
+                    >
+                        Empresa{!allHarassmentDone && currentScene !== 'CompanyScene' ? ' (bloqueado)' : ''}
+                    </button>
+                    <button
+                        className={`nav-map-item${!allCompanyDone && currentScene !== 'BrandingScene' ? ' nav-map-item--locked' : ''}${currentScene === 'BrandingScene' ? ' nav-map-item--active' : ''}`}
+                        disabled={!allCompanyDone && currentScene !== 'BrandingScene'}
+                        onClick={() => { EventBus.emit('navigate-to-scene', 'BrandingScene'); setShowNav(false); }}
+                    >
+                        Branding{!allCompanyDone && currentScene !== 'BrandingScene' ? ' (bloqueado)' : ''}
                     </button>
                 </div>
             )}

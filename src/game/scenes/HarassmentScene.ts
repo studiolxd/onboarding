@@ -2,15 +2,15 @@ import { EventBus } from "../EventBus";
 import { BaseScene } from "./BaseScene";
 import { NpcData, SceneTransitionData } from "../types";
 
-export class DisconnectScene extends BaseScene {
+export class HarassmentScene extends BaseScene {
   private fromScene: string | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private d: any;
-  private disconnectDone = false;
-  private hr1Ref: NpcData | null = null;
+  private protocolDone = false;
+  private suviRef: NpcData | null = null;
 
   constructor() {
-    super("DisconnectScene");
+    super("HarassmentScene");
   }
 
   init(data?: SceneTransitionData) {
@@ -26,18 +26,16 @@ export class DisconnectScene extends BaseScene {
     this.setupInput();
     this.setupBaseEventListeners();
 
-    this.d = this.cache.json.get("disconnect-dialogs");
-    this.annotateAudio(this.d["hr1"], "disconnect-hr1");
+    this.d = this.cache.json.get("harassment-dialogs");
+    this.annotateAudio(this.d["hr1"], "harassment-hr1");
 
-    // Spawn HR1 NPC
     const hr1 = this.spawnNpcAt("hr1", "npc1-down", 4, 18, () => this.d["hr1"].talk);
     hr1.walking = false;
-    this.hr1Ref = hr1;
 
     EventBus.emit("current-scene-ready", this);
     EventBus.emit("request-scorm-data");
 
-    if (this.fromScene === "PRLScene") {
+    if (this.fromScene === "DisconnectScene") {
       this.playEntrance();
     }
   }
@@ -50,13 +48,11 @@ export class DisconnectScene extends BaseScene {
 
     this.player.setPosition(entryX * this.TILE + this.TILE / 2, playerTileY * this.TILE + this.TILE / 2);
 
-    // Remove pre-placed HR1 and re-spawn from offscreen
     const existingHr1 = this.npcs.get("hr1");
     if (existingHr1) this.removeNpc(existingHr1);
 
     const hr1Y = playerTileY - 1;
     const hr1 = this.spawnNpcAt("hr1", "npc1-down", entryX, hr1Y, this.d["hr1"].talk);
-    this.hr1Ref = hr1;
 
     const playerPath: { x: number; y: number }[] = [];
     for (let x = entryX + 1; x <= playerTileX; x++) {
@@ -89,39 +85,46 @@ export class DisconnectScene extends BaseScene {
   }
 
   protected onDialogClosed(npcId: string): void {
-    if (npcId === "hr1" && !this.disconnectDone) {
-      this.disconnectDone = true;
-      EventBus.emit("task-completed", "learn-disconnect");
-      const badgeData = this.cache.json.get("disconnect-dialogs").badges["digital-disconnect"];
+    if (npcId === "hr1" && !this.protocolDone) {
+      this.protocolDone = true;
+      EventBus.emit("task-completed", "learn-harassment");
+      const badgeData = this.cache.json.get("harassment-dialogs").badges["equality"];
       EventBus.emit("badge-earned", badgeData);
-      // Set choice on hr1 NPC, then open forced dialog — advanceDialog will pick up the choice
-      const hr1 = this.hr1Ref;
-      if (hr1) {
-        hr1.choice = () => this.d["hr1"].harassmentChoice;
+      this.spawnSuviForCompany();
+    }
+
+    // Suvi company offer closed without choosing
+    if (npcId === "suvi-company" && this.suviRef) {
+      const suvi = this.suviRef;
+      this.suviRef = null;
+      const exitX = this.getOffscreenLeft();
+      const path: { x: number; y: number }[] = [];
+      for (let x = suvi.tileX - 1; x >= exitX; x--) {
+        path.push({ x, y: suvi.tileY });
       }
-      const msgs = this.d["hr1"].harassmentOffer;
-      const audioKeys = this.audioKeysFrom(msgs);
-      this.openForcedDialog("hr1", msgs, audioKeys);
+      this.walkNpcAlongPath(suvi, path, () => {
+        this.removeNpc(suvi);
+      });
     }
   }
 
   protected onChoiceConfirmed(npcId: string, choice: string): boolean {
-    if (npcId === "hr1") {
-      const opts = this.d["hr1"].harassmentChoice.options;
-      if (choice === opts[0]) { // Ir
-        this.goToHarassment();
+    if (npcId === "suvi-company") {
+      if (choice === "Ir a conocer la empresa") {
+        this.goToCompany();
         return true;
       }
-      // Quedarme — dismiss HR1
-      const hr1 = this.hr1Ref || this.npcs.get("hr1");
-      if (hr1) {
+      // Quedarme — dismiss Suvi
+      if (this.suviRef) {
+        const suvi = this.suviRef;
+        this.suviRef = null;
         const exitX = this.getOffscreenLeft();
         const path: { x: number; y: number }[] = [];
-        for (let x = hr1.tileX - 1; x >= exitX; x--) {
-          path.push({ x, y: hr1.tileY });
+        for (let x = suvi.tileX - 1; x >= exitX; x--) {
+          path.push({ x, y: suvi.tileY });
         }
-        this.walkNpcAlongPath(hr1, path, () => {
-          this.removeNpc(hr1);
+        this.walkNpcAlongPath(suvi, path, () => {
+          this.removeNpc(suvi);
         });
       }
       return false;
@@ -129,7 +132,36 @@ export class DisconnectScene extends BaseScene {
     return false;
   }
 
-  private goToHarassment() {
+  private spawnSuviForCompany() {
+    this.startCutscene();
+    const playerTileX = Math.floor(this.player.x / this.TILE);
+    const playerTileY = Math.floor(this.player.y / this.TILE);
+    const entryX = this.getOffscreenLeft();
+
+    const suviMessages = [
+      "Ahora te voy a llevar a conocer los valores, misión y visión de la empresa.",
+    ];
+
+    const suvi = this.spawnNpcAt("suvi-company", "npc1-down", entryX, playerTileY, suviMessages, () => ({
+      question: "¿Vamos a conocer la empresa?",
+      options: ["Ir a conocer la empresa", "Quedarme aquí por ahora"],
+    }));
+    this.suviRef = suvi;
+
+    const destX = playerTileX - 1;
+    const path: { x: number; y: number }[] = [];
+    for (let x = entryX + 1; x <= destX; x++) {
+      path.push({ x, y: playerTileY });
+    }
+
+    this.walkNpcAlongPath(suvi, path, () => {
+      suvi.walking = false;
+      this.endCutscene();
+      this.openForcedDialog("suvi-company", suviMessages);
+    });
+  }
+
+  private goToCompany() {
     this.startCutscene();
     this.stopDialogAudio();
 
@@ -148,9 +180,8 @@ export class DisconnectScene extends BaseScene {
 
     const playerTileX = Math.floor(this.player.x / this.TILE);
     const playerTileY = Math.floor(this.player.y / this.TILE);
-    const hr1 = this.hr1Ref || this.npcs.get("hr1");
-
-    const excludeIds = hr1 ? [hr1.id] : [];
+    const suvi = this.suviRef;
+    const excludeIds = suvi ? [suvi.id] : [];
     const playerPath = this.buildExitPathRight(playerTileX, playerTileY, excludeIds);
 
     let done = 0;
@@ -158,18 +189,18 @@ export class DisconnectScene extends BaseScene {
       done++;
       if (done >= 2) {
         const data = this.getTransitionData();
-        data.fromScene = "DisconnectScene";
-        EventBus.emit("scene-changed", "HarassmentScene");
-        this.scene.start("HarassmentScene", data);
+        data.fromScene = "HarassmentScene";
+        EventBus.emit("scene-changed", "CompanyScene");
+        this.scene.start("CompanyScene", data);
       }
     };
 
     this.walkPlayerAlongPath(playerPath, checkBothDone);
 
-    if (hr1) {
-      const hr1Path = this.buildExitPathRight(hr1.tileX, hr1.tileY, [hr1.id]);
-      this.walkNpcAlongPath(hr1, hr1Path, () => {
-        this.removeNpc(hr1);
+    if (suvi) {
+      const suviPath = this.buildExitPathRight(suvi.tileX, suvi.tileY, [suvi.id]);
+      this.walkNpcAlongPath(suvi, suviPath, () => {
+        this.removeNpc(suvi);
         checkBothDone();
       });
     } else {

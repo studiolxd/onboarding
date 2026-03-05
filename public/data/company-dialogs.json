@@ -1,0 +1,19 @@
+{
+  "suvi": {
+    "talk": [
+      "Es importante que conozcas la misión, visión y valores de la empresa.",
+      "Nuestra misión es transformar la formación corporativa a través de experiencias de aprendizaje innovadoras.",
+      "Nuestra visión es ser referentes en el diseño de experiencias de aprendizaje digital.",
+      "Y nuestros valores son: creatividad, colaboración, excelencia y compromiso con las personas.",
+      "Estos valores guían todo lo que hacemos, desde cómo diseñamos hasta cómo nos relacionamos.",
+      "Esperamos que los hagas tuyos y los apliques en tu día a día."
+    ]
+  },
+  "badges": {
+    "company-culture": {
+      "id": "company-culture",
+      "name": "Cultura de la empresa",
+      "description": "Has aprendido sobre la misión, visión y valores de la empresa"
+    }
+  }
+}

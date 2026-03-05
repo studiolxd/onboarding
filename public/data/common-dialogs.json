@@ -23,6 +23,10 @@
     { "id": "risk-psicosociales", "name": "Riesgos psicosociales", "scene": "PRLScene", "requires": ["intro-prl"] },
     { "id": "risk-electricos", "name": "Riesgos eléctricos y de cableado", "scene": "PRLScene", "requires": ["intro-prl"] },
     { "id": "risk-pantallas", "name": "Riesgos del uso prolongado de pantallas", "scene": "PRLScene", "requires": ["intro-prl"] },
-    { "id": "learn-disconnect", "name": "Aprende sobre desconexión digital", "scene": "DisconnectScene" }
+    { "id": "learn-disconnect", "name": "Aprende sobre desconexión digital", "scene": "DisconnectScene" },
+    { "id": "learn-harassment", "name": "Conoce el protocolo de acoso", "scene": "HarassmentScene" },
+    { "id": "learn-company", "name": "Conoce la misión, visión y valores", "scene": "CompanyScene" },
+    { "id": "learn-comunicacion", "name": "Conoce al equipo de comunicación", "scene": "BrandingScene" },
+    { "id": "learn-diseno", "name": "Conoce al equipo de diseño", "scene": "BrandingScene" }
   ]
 }

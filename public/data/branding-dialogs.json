@@ -1,0 +1,29 @@
+{
+  "comunicacion": {
+    "talk": [
+      "Soy la responsable de comunicación.",
+      "En nuestra empresa cuidamos mucho cómo nos comunicamos, tanto interna como externamente.",
+      "Utilizamos un tono cercano, profesional y claro en todas nuestras comunicaciones.",
+      "Antes de enviar cualquier comunicación externa, debe pasar por el equipo de comunicación.",
+      "También gestionamos las redes sociales y la relación con medios.",
+      "Si tienes dudas sobre cómo comunicar algo, no dudes en consultarnos."
+    ]
+  },
+  "diseno": {
+    "talk": [
+      "Soy el responsable de diseño.",
+      "El diseño es parte fundamental de nuestra identidad como empresa.",
+      "Tenemos un manual de marca que define colores, tipografías, logotipos y su uso correcto.",
+      "Es importante que utilices siempre las plantillas corporativas para presentaciones y documentos.",
+      "No modifiques el logotipo ni uses colores fuera de la paleta corporativa.",
+      "Si necesitas material gráfico, contacta con el equipo de diseño."
+    ]
+  },
+  "badges": {
+    "branding": {
+      "id": "branding",
+      "name": "Marca y comunicación",
+      "description": "Has aprendido sobre la comunicación y el diseño corporativo"
+    }
+  }
+}

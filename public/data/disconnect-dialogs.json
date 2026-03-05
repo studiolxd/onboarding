@@ -1,5 +1,10 @@
 {
   "hr1": {
+    "harassmentOffer": ["Para continuar con tu onboarding, es importante que conozcas el protocolo de acoso de la empresa. ¿Vamos?"],
+    "harassmentChoice": {
+      "question": "¿Quieres ir a conocer el protocolo de acoso?",
+      "options": ["Ir al protocolo de acoso", "Quedarme aquí por ahora"]
+    },
     "talk": [
       "La desconexión digital es un derecho reconocido por la Ley Orgánica 3/2018.",
       "Significa que fuera de tu horario laboral no tienes obligación de responder correos, mensajes ni llamadas de trabajo.",

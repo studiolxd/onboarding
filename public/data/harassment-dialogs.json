@@ -1,0 +1,21 @@
+{
+  "hr1": {
+    "talk": [
+      "En nuestra empresa tenemos tolerancia cero con cualquier forma de acoso.",
+      "El protocolo de acoso es un conjunto de medidas para prevenir, detectar y actuar ante situaciones de acoso laboral, sexual o por razón de sexo.",
+      "Toda persona tiene derecho a un entorno de trabajo libre de violencia y discriminación.",
+      "Si presencias o sufres una situación de acoso, debes comunicarlo al canal de denuncias de la empresa.",
+      "Las denuncias son confidenciales y están protegidas contra represalias.",
+      "La empresa investigará cada caso y tomará las medidas disciplinarias necesarias.",
+      "Además, contamos con un plan de igualdad que promueve la equidad entre todas las personas de la organización.",
+      "Recuerda: el respeto es la base de nuestro entorno laboral."
+    ]
+  },
+  "badges": {
+    "equality": {
+      "id": "equality",
+      "name": "Igualdad",
+      "description": "Has aprendido sobre el protocolo de acoso y el plan de igualdad"
+    }
+  }
+}

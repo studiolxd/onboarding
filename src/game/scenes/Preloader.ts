@@ -63,12 +63,15 @@ export class Preloader extends Scene
         this.load.json("coffee-dialogs", "data/coffee-dialogs.json");
         this.load.json("prl-dialogs", "data/prl-dialogs.json");
         this.load.json("disconnect-dialogs", "data/disconnect-dialogs.json");
+        this.load.json("harassment-dialogs", "data/harassment-dialogs.json");
+        this.load.json("company-dialogs", "data/company-dialogs.json");
+        this.load.json("branding-dialogs", "data/branding-dialogs.json");
     }
 
     create ()
     {
         this.createAnims();
-        this.scene.start('ITScene');
+        this.scene.start('CompanyScene');
     }
 
     private createAnims() {
