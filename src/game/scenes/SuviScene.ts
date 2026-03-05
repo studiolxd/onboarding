@@ -4,6 +4,7 @@ import { SceneTransitionData } from "../types";
 
 export class SuviScene extends BaseScene {
   private pendingGoToHR = false;
+  private stayHere = false;
   private awaitingGender = false;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private d: any;
@@ -81,14 +82,18 @@ export class SuviScene extends BaseScene {
       return true;
     }
     if (choice === returnOpts[1]) { // "Quedarse aquí"
-      this.closeDialog();
-      return true;
+      this.stayHere = true;
+      return false;
     }
 
     return false;
   }
 
   protected onDialogClosed(npcId: string): void {
+    if (this.stayHere) {
+      this.stayHere = false;
+      return;
+    }
     if (npcId === "ncp1" && !this.visitedSuvi) {
       this.visitedSuvi = true;
       EventBus.emit("task-completed", "meet-director");
