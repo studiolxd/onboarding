@@ -44,10 +44,22 @@ export class ITScene extends BaseScene {
       return undefined;
     });
 
-    // Computer prop, 2 tiles right of IT NPC
-    const compX = 6 * this.TILE + this.TILE / 2;
-    const compY = 18 * this.TILE + this.TILE / 2;
-    this.add.sprite(compX, compY, "computer").play("computer-anim");
+    // Computer prop, 2 tiles right of IT NPC — interactive & blocking
+    const compTileX = 6;
+    const compTileY = 18;
+    const computer = this.spawnNpcAt("computer", "computer", compTileX, compTileY,
+      () => {
+        if (!this.visitedIT) return ["No tengo las credenciales para iniciar el ordenador."];
+        return [];
+      },
+      () => {
+        if (!this.visitedIT) return undefined;
+        return { question: "¿Qué quieres hacer?", options: ["Encender ordenador", "Salir"] };
+      }
+    );
+    computer.walking = false;
+    computer.sprite.setScale(1);
+    computer.sprite.play("computer-anim");
 
     EventBus.emit("current-scene-ready", this);
     EventBus.emit("request-scorm-data");
@@ -103,6 +115,14 @@ export class ITScene extends BaseScene {
   }
 
   protected onChoiceConfirmed(npcId: string, choice: string): boolean {
+    if (npcId === "computer") {
+      if (choice === "Encender ordenador") {
+        // TODO: computer interaction
+        return false;
+      }
+      return false; // "Salir" — close dialog
+    }
+
     if (npcId !== "it-npc") return false;
 
     const opts = this.d.firstChoice.options;

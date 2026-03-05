@@ -919,7 +919,17 @@ export abstract class BaseScene extends Scene {
       })
       .setOrigin(1, 1).setResolution(this.ZOOM).setScrollFactor(0).setDepth(1001);
 
-    this.showLine();
+    if (this.talkQueue.length === 0) {
+      const choice = npc.choice;
+      const resolvedChoice = typeof choice === "function" ? choice() : choice;
+      if (resolvedChoice) {
+        this.showChoices(resolvedChoice);
+      } else {
+        this.closeDialog();
+      }
+    } else {
+      this.showLine();
+    }
   }
 
   /** Opens a forced dialog without needing adjacency (e.g. for welcome/finale sequences) */
