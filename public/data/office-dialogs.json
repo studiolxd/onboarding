@@ -1,0 +1,73 @@
+{
+  "nuria": {
+    "role": "Diseñador instruccional",
+    "talk": [
+      "¡Hola, {name}! Soy Nuria, diseñadora instruccional.",
+      "En nuestro equipo nos encargamos de crear experiencias de aprendizaje efectivas.",
+      "Utilizamos metodologías como ADDIE y SAM para diseñar los cursos.",
+      "Nuestras herramientas principales son Articulate Storyline y Articulate Rise.",
+      "Con Storyline creamos interacciones complejas y simulaciones.",
+      "Rise lo usamos para cursos más ágiles y responsive.",
+      "Serena te contará más sobre el resto del proceso. ¡Habla con ella!"
+    ],
+    "redirect": "Eres {role}, seguro que {npcs} puede ayudarte mejor."
+  },
+  "serena": {
+    "role": "Diseñador instruccional",
+    "talk": [
+      "¡Hola! Soy Serena, también diseñadora instruccional.",
+      "Yo me encargo más de la parte de evaluación y seguimiento.",
+      "Utilizamos Moodle como LMS para alojar los cursos y hacer seguimiento del progreso.",
+      "Para los guiones y storyboards trabajamos con Google Docs y Miro.",
+      "También hacemos pruebas de usabilidad con usuarios reales antes de publicar.",
+      "Nos coordinamos mucho con diseño gráfico y programación para que todo encaje.",
+      "¡Bienvenida al equipo!"
+    ],
+    "redirect": "Eres {role}, seguro que {npcs} puede ayudarte mejor."
+  },
+  "diego": {
+    "role": "Programador",
+    "talk": [
+      "¡Ey, qué tal! Soy Diego, el programador del equipo.",
+      "Aquí nos encargamos de dar vida a los proyectos que diseñan los compañeros.",
+      "Trabajamos principalmente con TypeScript, React y Phaser para los proyectos interactivos.",
+      "Usamos Git y GitHub para el control de versiones. Cada cambio va en una rama y se revisa antes de fusionar.",
+      "El editor que usamos es Visual Studio Code, con extensiones para linting y formateo automático.",
+      "Para el despliegue usamos CI/CD con GitHub Actions, así los cambios se publican automáticamente.",
+      "Nextcloud es donde compartimos documentación técnica y recursos del proyecto.",
+      "Si necesitas algo técnico o tienes dudas sobre cómo funciona algo, aquí estoy."
+    ],
+    "redirect": "Eres {role}, seguro que {npcs} puede ayudarte mejor."
+  },
+  "grafico": {
+    "role": "Diseñador gráfico",
+    "talk": [
+      "¡Hola de nuevo, {name}! Ya nos conocemos de antes.",
+      "Ahora te cuento más en detalle cómo trabajamos en diseño gráfico.",
+      "Nuestra herramienta principal es Figma, donde hacemos prototipos, interfaces y componentes reutilizables.",
+      "Para ilustraciones y material gráfico más elaborado usamos Adobe Illustrator y Photoshop.",
+      "Todos los recursos gráficos se guardan organizados en Nextcloud, con una estructura de carpetas por proyecto.",
+      "Seguimos el manual de marca al pie de la letra: colores, tipografías, espaciados... todo está definido.",
+      "Nos coordinamos con diseño instruccional para que las pantallas de los cursos sean claras y atractivas.",
+      "Si necesitas iconos, ilustraciones o cualquier recurso visual, no dudes en pedírnoslo."
+    ],
+    "redirect": "Eres {role}, seguro que {npcs} puede ayudarte mejor."
+  },
+  "roleNpcs": {
+    "Diseñador instruccional": ["nuria", "serena"],
+    "Programador": ["diego"],
+    "Diseñador gráfico": ["grafico"]
+  },
+  "roleNpcNames": {
+    "Diseñador instruccional": "Nuria y Serena",
+    "Programador": "Diego",
+    "Diseñador gráfico": "el equipo de diseño gráfico"
+  },
+  "badges": {
+    "office": {
+      "id": "office-team",
+      "name": "Mi equipo",
+      "description": "Conoces a tu equipo y sus herramientas de trabajo"
+    }
+  }
+}

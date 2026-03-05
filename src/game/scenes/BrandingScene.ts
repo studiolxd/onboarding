@@ -1,6 +1,6 @@
 import { EventBus } from "../EventBus";
 import { BaseScene } from "./BaseScene";
-import { SceneTransitionData } from "../types";
+import { NpcData, SceneTransitionData } from "../types";
 
 export class BrandingScene extends BaseScene {
   private fromScene: string | null = null;
@@ -9,6 +9,7 @@ export class BrandingScene extends BaseScene {
   private talkedComunicacion = false;
   private talkedDiseno = false;
   private badgeAwarded = false;
+  private suviRoleNpc: NpcData | null = null;
 
   constructor() {
     super("BrandingScene");
@@ -90,6 +91,20 @@ export class BrandingScene extends BaseScene {
     });
   }
 
+  protected onChoiceConfirmed(npcId: string, choice: string): boolean {
+    if (npcId === "suvi-role-offer") {
+      const roleChoice = this.d.roleOffer?.choice;
+      if (roleChoice && choice === roleChoice.options[0]) {
+        // "Vamos" → go to role scene
+        this.goToRoleScene();
+        return true;
+      }
+      // "Me quedo" → Suvi walks away
+      return false;
+    }
+    return false;
+  }
+
   protected onDialogClosed(npcId: string): void {
     // Suvi walks away after intro
     if (npcId === "suvi-branding-intro") {
@@ -117,6 +132,11 @@ export class BrandingScene extends BaseScene {
       EventBus.emit("task-completed", "learn-diseno");
       this.checkBrandingBadge();
     }
+
+    // Suvi role offer: dismissed after "Me quedo"
+    if (npcId === "suvi-role-offer" && this.suviRoleNpc) {
+      this.dismissSuviRole();
+    }
   }
 
   private checkBrandingBadge() {
@@ -124,6 +144,108 @@ export class BrandingScene extends BaseScene {
       this.badgeAwarded = true;
       const badgeData = this.cache.json.get("branding-dialogs").badges["branding"];
       EventBus.emit("badge-earned", badgeData);
+      this.spawnSuviForRole();
     }
+  }
+
+  private getRoleSceneName(): string {
+    return "OfficeScene";
+  }
+
+  private spawnSuviForRole() {
+    this.time.delayedCall(500, () => {
+      this.startCutscene();
+      const entryX = this.getOffscreenLeft();
+      const playerTileX = Math.floor(this.player.x / this.TILE);
+      const playerTileY = Math.floor(this.player.y / this.TILE);
+      const destX = playerTileX - 1;
+      const destY = playerTileY;
+
+      const roleName = this.learnerRole || "Diseñador instruccional";
+      const msgs = this.d.roleOffer?.messages
+        ? (this.d.roleOffer.messages as string[]).map((m: string) => m.replace("{role}", roleName))
+        : [`¡Genial! Ahora te llevo a conocer al equipo de ${roleName}.`, "¿Vamos?"];
+
+      const suvi = this.spawnNpcAt("suvi", "npc1-down", entryX, destY, msgs);
+      suvi.choice = this.d.roleOffer?.choice || {
+        question: "¿Vamos?",
+        options: ["Vamos", "Me quedo"],
+      };
+      this.suviRoleNpc = suvi;
+
+      const suviPath: { x: number; y: number }[] = [];
+      for (let x = entryX + 1; x <= destX; x++) {
+        suviPath.push({ x, y: destY });
+      }
+
+      this.walkNpcAlongPath(suvi, suviPath, () => {
+        suvi.walking = false;
+        this.endCutscene();
+        this.openForcedDialog("suvi-role-offer", msgs);
+      });
+    });
+  }
+
+  private goToRoleScene() {
+    this.startCutscene();
+    this.stopDialogAudio();
+    if (this.isTalking) {
+      this.dialogBg?.destroy();
+      this.dialogText?.destroy();
+      this.dialogHint?.destroy();
+      this.dialogBg = undefined;
+      this.dialogText = undefined;
+      this.dialogHint = undefined;
+      this.choiceTexts.forEach(t => t.destroy());
+      this.choiceTexts = [];
+      this.destroyArrows();
+      this.isTalking = false;
+    }
+
+    const sceneName = this.getRoleSceneName();
+    const playerTileX = Math.floor(this.player.x / this.TILE);
+    const playerTileY = Math.floor(this.player.y / this.TILE);
+
+    const excludeIds = this.suviRoleNpc ? [this.suviRoleNpc.id] : [];
+    const playerPath = this.buildExitPathRight(playerTileX, playerTileY, excludeIds);
+
+    let done = 0;
+    const checkBothDone = () => {
+      done++;
+      if (done >= 2) {
+        const data = this.getTransitionData();
+        data.fromScene = "BrandingScene";
+        EventBus.emit("scene-changed", sceneName);
+        this.scene.start(sceneName, data);
+      }
+    };
+
+    this.walkPlayerAlongPath(playerPath, checkBothDone);
+
+    if (this.suviRoleNpc) {
+      const suvi = this.suviRoleNpc;
+      const suviPath = this.buildExitPathRight(suvi.tileX, suvi.tileY, [suvi.id]);
+      this.walkNpcAlongPath(suvi, suviPath, () => {
+        this.removeNpc(suvi);
+        checkBothDone();
+      });
+    } else {
+      checkBothDone();
+    }
+  }
+
+  private dismissSuviRole() {
+    if (!this.suviRoleNpc) return;
+    const suvi = this.suviRoleNpc;
+    this.suviRoleNpc = null;
+
+    const exitX = this.getOffscreenLeft();
+    const path: { x: number; y: number }[] = [];
+    for (let x = suvi.tileX - 1; x >= exitX; x--) {
+      path.push({ x, y: suvi.tileY });
+    }
+    this.walkNpcAlongPath(suvi, path, () => {
+      this.removeNpc(suvi);
+    });
   }
 }

@@ -18,6 +18,7 @@
     "hrIntro": ["Te dejo con el equipo de RRHH.", "¡Que te vaya bien!"],
     "itIntro": ["Aquí está el equipo de IT.", "Ellos te ayudarán con las herramientas y accesos.", "¡Te dejo con ellos!"],
     "prlIntro": ["Para trabajar seguro es importante que hagas la formación en Prevención de Riesgos Laborales.", "Aquí está la responsable de PRL, ella te guiará.", "¡Ánimo!"],
-    "brandingIntro": ["El equipo de diseño y comunicación te dará todos los detalles.", "¡Te dejo con ellos!"]
+    "brandingIntro": ["El equipo de diseño y comunicación te dará todos los detalles.", "¡Te dejo con ellos!"],
+    "roleIntro": ["Aquí está tu equipo. Ellos te contarán cómo trabajan y qué herramientas usan.", "¡Te dejo con ellos!"]
   }
 }

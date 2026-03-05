@@ -19,6 +19,13 @@
       "Si necesitas material gráfico, contacta con el equipo de diseño."
     ]
   },
+  "roleOffer": {
+    "messages": ["¡Genial, {name}! Ahora te llevo a conocer al equipo de {role}.", "Ellos te contarán las herramientas que usan y cómo trabajan.", "¿Vamos?"],
+    "choice": {
+      "question": "¿Vamos a conocer a tu equipo?",
+      "options": ["Vamos", "Me quedo"]
+    }
+  },
   "badges": {
     "branding": {
       "id": "branding",

@@ -27,6 +27,10 @@
     { "id": "learn-harassment", "name": "Conoce el protocolo de acoso", "scene": "HarassmentScene" },
     { "id": "learn-company", "name": "Conoce la misión, visión y valores", "scene": "CompanyScene" },
     { "id": "learn-comunicacion", "name": "Conoce al equipo de comunicación", "scene": "BrandingScene" },
-    { "id": "learn-diseno", "name": "Conoce al equipo de diseño", "scene": "BrandingScene" }
+    { "id": "learn-diseno", "name": "Conoce al equipo de diseño", "scene": "BrandingScene" },
+    { "id": "meet-role-nuria", "name": "Habla con Nuria", "scene": "OfficeScene" },
+    { "id": "meet-role-serena", "name": "Habla con Serena", "scene": "OfficeScene" },
+    { "id": "meet-role-diego", "name": "Habla con Diego", "scene": "OfficeScene" },
+    { "id": "meet-role-grafico", "name": "Conoce al equipo de diseño gráfico", "scene": "OfficeScene" }
   ]
 }

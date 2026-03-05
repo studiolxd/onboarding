@@ -46,7 +46,9 @@ function GameWithScorm() {
     const [allDisconnectDone, setAllDisconnectDone] = useState(false);
     const [allHarassmentDone, setAllHarassmentDone] = useState(false);
     const [allCompanyDone, setAllCompanyDone] = useState(false);
+    const [allBrandingDone, setAllBrandingDone] = useState(false);
     const [taskDefs, setTaskDefs] = useState<GameTask[]>([]);
+    const taskDefsRef = useRef<GameTask[]>([]);
     const [completedTasks, setCompletedTasks] = useState<string[]>([]);
     const [showSettings, setShowSettings] = useState(false);
     const [sfxEnabled, setSfxEnabled] = useState(true);
@@ -169,6 +171,7 @@ function GameWithScorm() {
                     if (bb.some(b => b.id === 'digital-disconnect')) setAllDisconnectDone(true);
                     if (bb.some(b => b.id === 'equality')) setAllHarassmentDone(true);
                     if (bb.some(b => b.id === 'company-culture')) setAllCompanyDone(true);
+                    if (bb.some(b => b.id === 'branding')) setAllBrandingDone(true);
                     if (savedState.currentScene) setCurrentScene(savedState.currentScene);
                     // Restaurar badges
                     if (savedState.badges && savedState.badges.length > 0) {
@@ -245,6 +248,7 @@ function GameWithScorm() {
                 if (newBadges.some(b => b.id === 'digital-disconnect')) setAllDisconnectDone(true);
                 if (newBadges.some(b => b.id === 'equality')) setAllHarassmentDone(true);
                 if (newBadges.some(b => b.id === 'company-culture')) setAllCompanyDone(true);
+                if (newBadges.some(b => b.id === 'branding')) setAllBrandingDone(true);
             }
         };
 
@@ -293,6 +297,7 @@ function GameWithScorm() {
 
         // Definiciones de tareas cargadas desde JSON
         const onTaskDefsLoaded = (defs: GameTask[]) => {
+            taskDefsRef.current = defs;
             setTaskDefs(defs);
         };
 
@@ -309,25 +314,24 @@ function GameWithScorm() {
                 api.commit();
                 return next;
             });
-            // Toast for completed task
-            setTaskDefs(defs => {
-                const task = defs.find(t => t.id === taskId);
-                if (task) enqueueToast('task-completed', task.name);
 
-                // Check for newly unlocked tasks in current scene only
-                const completed = [...(savedState.completedTasks ?? []), taskId];
-                const scene = savedState.currentScene ?? '';
-                for (const t of defs) {
-                    if (t.scene !== scene) continue;
-                    if (announcedTasks.current.has(t.id)) continue;
-                    if (completed.includes(t.id)) continue;
-                    if (!t.requires || t.requires.every(r => completed.includes(r))) {
-                        announcedTasks.current.add(t.id);
-                        enqueueToast('task-assigned', t.name);
-                    }
+            // Toast for completed task (outside state updater to avoid StrictMode double-fire)
+            const defs = taskDefsRef.current;
+            const task = defs.find(t => t.id === taskId);
+            if (task) enqueueToast('task-completed', task.name);
+
+            // Check for newly unlocked tasks in current scene only
+            const completed = [...(savedState.completedTasks ?? []), taskId];
+            const scene = savedState.currentScene ?? '';
+            for (const t of defs) {
+                if (t.scene !== scene) continue;
+                if (announcedTasks.current.has(t.id)) continue;
+                if (completed.includes(t.id)) continue;
+                if (!t.requires || t.requires.every(r => completed.includes(r))) {
+                    announcedTasks.current.add(t.id);
+                    enqueueToast('task-assigned', t.name);
                 }
-                return defs;
-            });
+            }
         };
 
         const onSceneChanged = (sceneName: string) => {
@@ -533,6 +537,13 @@ function GameWithScorm() {
                         onClick={() => { EventBus.emit('navigate-to-scene', 'BrandingScene'); setShowNav(false); }}
                     >
                         Branding{!allCompanyDone && currentScene !== 'BrandingScene' ? ' (bloqueado)' : ''}
+                    </button>
+                    <button
+                        className={`nav-map-item${!allBrandingDone && currentScene !== 'OfficeScene' ? ' nav-map-item--locked' : ''}${currentScene === 'OfficeScene' ? ' nav-map-item--active' : ''}`}
+                        disabled={!allBrandingDone && currentScene !== 'OfficeScene'}
+                        onClick={() => { EventBus.emit('navigate-to-scene', 'OfficeScene'); setShowNav(false); }}
+                    >
+                        Oficina{!allBrandingDone && currentScene !== 'OfficeScene' ? ' (bloqueado)' : ''}
                     </button>
                 </div>
             )}

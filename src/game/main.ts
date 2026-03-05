@@ -9,6 +9,7 @@ import { DisconnectScene } from './scenes/DisconnectScene';
 import { HarassmentScene } from './scenes/HarassmentScene';
 import { CompanyScene } from './scenes/CompanyScene';
 import { BrandingScene } from './scenes/BrandingScene';
+import { OfficeScene } from './scenes/OfficeScene';
 import { MainMenu } from './scenes/MainMenu';
 import { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
@@ -38,6 +39,7 @@ const config: Phaser.Types.Core.GameConfig = {
         HarassmentScene,
         CompanyScene,
         BrandingScene,
+        OfficeScene,
         GameOver
     ]
 };
