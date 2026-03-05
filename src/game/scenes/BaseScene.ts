@@ -870,7 +870,7 @@ export abstract class BaseScene extends Scene {
       this.choiceTexts.push(text);
     }
 
-    if (choice.options.length > this.MAX_VISIBLE_CHOICES) {
+    {
       const arrowX = this.dialogBg ? this.dialogBg.x + this.dialogBg.width - 8 : this.dialogText!.x + 80;
 
       this.arrowUp = this.add
