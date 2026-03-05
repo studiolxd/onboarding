@@ -30,7 +30,7 @@ export class ITScene extends BaseScene {
         return this.resolveGendered(this.d.firstVisit);
       }
       return this.d.returnVisit;
-    }, { tileX: 15, tileY: 14 }, () => {
+    }, { tileX: 4, tileY: 18 }, () => {
       if (!this.visitedIT) {
         return this.d.firstChoice;
       }
