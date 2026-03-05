@@ -75,9 +75,13 @@ export class SuviScene extends BaseScene {
       return true;
     }
 
-    const goOption = this.d.returnChoice.options[0];
-    if (choice === goOption) {
+    const returnOpts = this.d.returnChoice.options;
+    if (choice === returnOpts[0]) { // "Ir a RRHH"
       this.goToHR();
+      return true;
+    }
+    if (choice === returnOpts[1]) { // "Quedarse aquí"
+      this.closeDialog();
       return true;
     }
 
