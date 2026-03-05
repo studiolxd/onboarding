@@ -350,19 +350,19 @@ function GameWithScorm() {
                 </div>
             )}
 
-            {taskDefs.filter(t => t.scene === currentScene && (!t.requires || t.requires.every(r => completedTasks.includes(r)))).length > 0 && (
-                <button
-                    className="tasks-btn"
-                    onClick={() => { setShowTasks(!showTasks); setShowBadges(false); setShowNav(false); }}
-                >
-                    Tareas
-                    {(() => {
-                        const visible = taskDefs.filter(t => t.scene === currentScene && (!t.requires || t.requires.every(r => completedTasks.includes(r))));
-                        const done = visible.filter(t => completedTasks.includes(t.id)).length;
-                        return ` (${done}/${visible.length})`;
-                    })()}
-                </button>
-            )}
+            {(() => {
+                const visible = taskDefs.filter(t => t.scene === currentScene && (!t.requires || t.requires.every(r => completedTasks.includes(r))));
+                const done = visible.filter(t => completedTasks.includes(t.id)).length;
+                if (visible.length === 0 || done >= visible.length) return null;
+                return (
+                    <button
+                        className="tasks-btn"
+                        onClick={() => { setShowTasks(!showTasks); setShowBadges(false); setShowNav(false); }}
+                    >
+                        Tareas ({done}/{visible.length})
+                    </button>
+                );
+            })()}
 
             {showTasks && taskDefs.length > 0 && (() => {
                 const sceneLabels: Record<string, string> = {
