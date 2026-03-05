@@ -21,5 +21,43 @@
       "Y Frappe, en hr.studiolxd.com, para la gestión de RRHH."
     ],
     "returnVisit": ["¡Hola de nuevo, {name}!", "Ahora dirígete al ordenador para probar las herramientas."]
+  },
+  "hr2-it": {
+    "fichaIntro": [
+      "¡Hola, {name}! Soy de RRHH.",
+      "Es importante fichar la jornada laboral.",
+      "En Frappe puedes registrar tu entrada y salida cada día."
+    ],
+    "flexibleIntro": [
+      "Dentro del trabajo flexible es importante asignar los días que se va a trabajar.",
+      "También puedes solicitar cambios de días y registrar las vacaciones.",
+      "Prueba esas opciones en el ordenador."
+    ],
+    "farewell": [
+      "¡Ya conoces todas las herramientas internas!",
+      "Si necesitas algo, ya sabes dónde encontrarnos.",
+      "¡Que te vaya bien!"
+    ]
+  },
+  "security-npc": {
+    "notReady": ["Soy el encargado de la seguridad de los datos, pero primero aprende a manejar las herramientas internas."],
+    "talk": [
+      "Trabajamos con datos sensibles de clientes.",
+      "Es fundamental que tengamos cuidado con la información que manejamos.",
+      "Nunca compartas contraseñas ni datos personales por canales no seguros.",
+      "Si detectas algo sospechoso, avísanos inmediatamente."
+    ]
+  },
+  "badges": {
+    "internal-apps": {
+      "id": "internal-apps",
+      "name": "Aplicaciones internas",
+      "description": "Has aprendido a usar las herramientas internas"
+    },
+    "data-security": {
+      "id": "data-security",
+      "name": "Seguridad de los datos",
+      "description": "Has aprendido sobre la seguridad de los datos"
+    }
   }
 }

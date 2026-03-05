@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { ScormProvider, useScorm, useScormAutoTerminate } from '@studiolxd/react-scorm';
 import { IRefPhaserGame, PhaserGame } from './PhaserGame';
+import { ComputerScreen } from './ComputerScreen';
 import { EventBus } from './game/EventBus';
 
 interface Badge {
@@ -105,6 +106,7 @@ function GameWithScorm() {
             tileX?: number; tileY?: number; rol?: string; badges?: Badge[];
             displayName?: string; genderPref?: string; talkedTo?: string[];
             completedTasks?: string[]; currentScene?: string;
+            watchedVideos?: string[];
         } = {};
 
         // Cuando el juego pide datos SCORM (al terminar create())
@@ -168,6 +170,10 @@ function GameWithScorm() {
                         for (const id of savedState.completedTasks) {
                             announcedTasks.current.add(id);
                         }
+                    }
+                    // Restaurar vídeos vistos
+                    if (savedState.watchedVideos && savedState.watchedVideos.length > 0) {
+                        EventBus.emit('restore-watched-videos', savedState.watchedVideos);
                     }
                 } catch { /* ignore invalid JSON */ }
             }
@@ -308,6 +314,14 @@ function GameWithScorm() {
             api.commit();
         };
 
+        const onVideoWatched = (videoId: string) => {
+            const prev = savedState.watchedVideos ?? [];
+            if (prev.includes(videoId)) return;
+            savedState = { ...savedState, watchedVideos: [...prev, videoId] };
+            api.setSuspendData(JSON.stringify(savedState));
+            api.commit();
+        };
+
         EventBus.on('request-scorm-data', onRequestScormData);
         EventBus.on('save-position', onSavePosition);
         EventBus.on('choice-made', onChoiceMade);
@@ -321,6 +335,7 @@ function GameWithScorm() {
         EventBus.on('scene-changed', onSceneChanged);
         EventBus.on('task-defs-loaded', onTaskDefsLoaded);
         EventBus.on('task-completed', onTaskCompleted);
+        EventBus.on('video-watched', onVideoWatched);
 
         return () => {
             EventBus.off('request-scorm-data', onRequestScormData);
@@ -336,6 +351,7 @@ function GameWithScorm() {
             EventBus.off('scene-changed', onSceneChanged);
             EventBus.off('task-defs-loaded', onTaskDefsLoaded);
             EventBus.off('task-completed', onTaskCompleted);
+            EventBus.off('video-watched', onVideoWatched);
         };
     }, [api, addBadge, enqueueToast]);
 
@@ -386,6 +402,7 @@ function GameWithScorm() {
     return (
         <div id="app">
             <PhaserGame ref={phaserRef} />
+            <ComputerScreen />
 
             <button
                 className="settings-btn"
