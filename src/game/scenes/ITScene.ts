@@ -179,20 +179,19 @@ export class ITScene extends BaseScene {
   /** Handle computer overlay being closed — trigger NPC2 actions based on phase. */
   private handleComputerClosed() {
     if (this.computerPhase === 1) {
-      // Nextcloud watched, spawn HR NPC2 for fichaIntro
+      // Nextcloud watched, spawn HR NPC2 and deliver fichaIntro
       this.spawnHrNpc2AndDeliver(this.d2.fichaIntro, "hr2-ficha", () => {
         this.computerPhase = 2;
       });
     } else if (this.computerPhase === 3) {
-      // Fichar watched, HR NPC2 delivers flexibleIntro
-      this.spawnHrNpc2AndDeliver(this.d2.flexibleIntro, "hr2-flexible", () => {
+      // Fichar watched, HR NPC2 (already present) delivers flexibleIntro
+      this.deliverHrNpc2Dialog(this.d2.flexibleIntro, "hr2-flexible", () => {
         this.computerPhase = 4;
       });
     } else if (this.computerPhase === 5) {
       // All videos watched, HR NPC2 delivers farewell + badge
-      this.spawnHrNpc2AndDeliver(this.d2.farewell, "hr2-farewell", () => {
+      this.deliverHrNpc2Dialog(this.d2.farewell, "hr2-farewell", () => {
         this.computerPhase = 6;
-        // Award badge
         const badgeData = this.cache.json.get("it-dialogs").badges["internal-apps"];
         EventBus.emit("badge-earned", badgeData);
       });
@@ -238,6 +237,14 @@ export class ITScene extends BaseScene {
       const audioKeys = this.audioKeysFrom(messages);
       this.openForcedDialog(dialogId, messages, audioKeys);
     });
+  }
+
+  /** Deliver dialog from HR NPC2 already present (no spawn/walk). */
+  private deliverHrNpc2Dialog(messages: string[], dialogId: string, onDone: () => void) {
+    this._hr2DialogCallback = onDone;
+    this._hr2DialogId = dialogId;
+    const audioKeys = this.audioKeysFrom(messages);
+    this.openForcedDialog(dialogId, messages, audioKeys);
   }
 
   private _hr2DialogCallback: (() => void) | null = null;
@@ -392,11 +399,8 @@ export class ITScene extends BaseScene {
 
       callback?.();
 
-      // After farewell (phase 6), dismiss HR NPC2
+      // Only dismiss after farewell (phase 6) — stays for intermediate dialogs
       if (this.computerPhase === 6) {
-        this.dismissHrNpc2();
-      } else {
-        // After fichaIntro or flexibleIntro, dismiss HR NPC2 (they come back next time)
         this.dismissHrNpc2();
       }
     }
