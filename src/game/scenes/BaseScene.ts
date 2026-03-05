@@ -51,7 +51,7 @@ export abstract class BaseScene extends Scene {
   protected activeChoice: NpcChoice | null = null;
   protected choiceScrollTop = 0;
   protected readonly MAX_VISIBLE_CHOICES = 4;
-  protected readonly CHOICE_LINE_H = 14;
+  protected readonly CHOICE_LINE_H = 18;
   protected arrowUp?: Phaser.GameObjects.Text;
   protected arrowDown?: Phaser.GameObjects.Text;
 
@@ -862,11 +862,21 @@ export abstract class BaseScene extends Scene {
     const visibleCount = Math.min(choice.options.length, this.MAX_VISIBLE_CHOICES);
     this.choiceTexts = [];
     for (let i = 0; i < visibleCount; i++) {
+      const slot = i;
       const text = this.add
         .text(this.dialogText!.x, baseY + i * this.CHOICE_LINE_H, "", {
           fontFamily: "monospace", fontSize: "7px", color: "#cccccc",
+          padding: { top: 3, bottom: 3 },
         })
-        .setResolution(this.ZOOM).setScrollFactor(0).setDepth(1001);
+        .setResolution(this.ZOOM).setScrollFactor(0).setDepth(1001)
+        .setInteractive({ useHandCursor: true })
+        .on("pointerdown", () => {
+          const optIdx = this.choiceScrollTop + slot;
+          if (optIdx < this.activeChoice!.options.length) {
+            this.selectChoice(optIdx);
+            this.confirmChoice();
+          }
+        });
       this.choiceTexts.push(text);
     }
 
@@ -921,24 +931,8 @@ export abstract class BaseScene extends Scene {
     this.arrowDown = undefined;
   }
 
-  protected handleChoiceClick(pointer: Phaser.Input.Pointer) {
-    if (!this.activeChoice || this.choiceTexts.length === 0) return;
-    const hudPos = this.screenToHUD(pointer.x, pointer.y);
-    for (let slot = 0; slot < this.choiceTexts.length; slot++) {
-      const t = this.choiceTexts[slot];
-      const tx = t.x;
-      const ty = t.y;
-      const tw = t.width;
-      const th = this.CHOICE_LINE_H;
-      if (hudPos.x >= tx && hudPos.x <= tx + tw && hudPos.y >= ty && hudPos.y < ty + th) {
-        const optIdx = this.choiceScrollTop + slot;
-        if (optIdx < this.activeChoice.options.length) {
-          this.selectChoice(optIdx);
-          this.confirmChoice();
-        }
-        return;
-      }
-    }
+  protected handleChoiceClick(_pointer: Phaser.Input.Pointer) {
+    // Choices are handled via interactive text objects directly
   }
 
   protected confirmChoice() {
