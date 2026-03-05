@@ -50,17 +50,30 @@ export class HRScene extends BaseScene {
     this.teamNpcIds = this.teamConfig.map((c: { id: string }) => c.id);
     this.roleFunctions = this.d.roleFunctions;
 
-    // HR-specific restore: team state
+    // HR-specific restore: team state & finale
+    if (this.visitedHr1) {
+      this.teamSpawned = true;
+      this.teamDismissed = true;
+    }
+    if (this.visitedHr1 && this.visitedHr2 && this.visitedHr3) {
+      this.finaleTriggered = true;
+    }
     EventBus.on("restore-progress", (progress: { visitedSuvi?: boolean; visitedHr1?: boolean; visitedHr2?: boolean; visitedHr3?: boolean }) => {
       if (progress.visitedHr1) {
         this.teamSpawned = true;
         this.teamDismissed = true;
+      }
+      if (progress.visitedHr1 && progress.visitedHr2 && progress.visitedHr3) {
+        this.finaleTriggered = true;
       }
     });
 
     // --- NPCs ---
     this.spawnNpc(objLayer, "hr1", "npc1-down", () => {
       if (!this.visitedHr1) {
+        if (this.teamSpawned && !this.teamDismissed) {
+          return this.d.hr1.teamOnScreen;
+        }
         return this.d.hr1.firstVisit;
       }
       return this.d.hr1.returnVisit;
@@ -129,6 +142,7 @@ export class HRScene extends BaseScene {
   }
 
   private playSuviEntrance() {
+    this.startCutscene();
     const playerTileX = Math.floor(this.player.x / this.TILE);
     const playerTileY = Math.floor(this.player.y / this.TILE);
     const entryX = this.getOffscreenLeft();
@@ -158,6 +172,7 @@ export class HRScene extends BaseScene {
     const checkBothDone = () => {
       done++;
       if (done >= 2) {
+        this.endCutscene();
         this.isTalking = false;
         this.openForcedDialog("suvi-intro", suviDialogs.hrIntro);
       }
@@ -665,8 +680,10 @@ export class HRScene extends BaseScene {
     if (this.visitedHr1) return;
     this.visitedHr1 = true;
     EventBus.emit("task-completed", "meet-team");
+    this.startCutscene();
 
     this.time.delayedCall(1500, () => {
+      this.endCutscene();
       const welcome = this.d.hr1.welcome;
       const redirect = !this.visitedHr2
         ? welcome.redirectHr2
@@ -684,6 +701,7 @@ export class HRScene extends BaseScene {
     if (this.finaleTriggered) return;
     if (!this.visitedHr1 || !this.visitedHr2 || !this.visitedHr3) return;
     this.finaleTriggered = true;
+    this.startCutscene();
 
     // Spawn Suvi offscreen left and walk her to the player
     this.time.delayedCall(500, () => {
@@ -705,12 +723,14 @@ export class HRScene extends BaseScene {
       this.walkNpcAlongPath(suvi, suviPath, () => {
         suvi.walking = false;
         suvi.choice = this.d.finale.choice;
+        this.endCutscene();
         this.openForcedDialog("suvi-finale", this.resolveMessages(this.d.finale.greeting));
       });
     });
   }
 
   private goToIT() {
+    this.startCutscene();
     // Close dialog if still open
     if (this.isTalking) {
       this.dialogBg?.destroy();
@@ -725,14 +745,11 @@ export class HRScene extends BaseScene {
       this.isTalking = false;
     }
 
-    const exitX = this.getOffscreenRight();
     const playerTileX = Math.floor(this.player.x / this.TILE);
     const playerTileY = Math.floor(this.player.y / this.TILE);
 
-    const playerPath: { x: number; y: number }[] = [];
-    for (let x = playerTileX + 1; x <= exitX; x++) {
-      playerPath.push({ x, y: playerTileY });
-    }
+    const excludeIds = this.suviFinaleNpc ? [this.suviFinaleNpc.id] : [];
+    const playerPath = this.buildExitPathRight(playerTileX, playerTileY, excludeIds);
 
     let done = 0;
     const checkBothDone = () => {
@@ -749,10 +766,7 @@ export class HRScene extends BaseScene {
 
     if (this.suviFinaleNpc) {
       const suvi = this.suviFinaleNpc;
-      const suviPath: { x: number; y: number }[] = [];
-      for (let x = suvi.tileX + 1; x <= exitX; x++) {
-        suviPath.push({ x, y: suvi.tileY });
-      }
+      const suviPath = this.buildExitPathRight(suvi.tileX, suvi.tileY, [suvi.id]);
       this.walkNpcAlongPath(suvi, suviPath, () => {
         this.removeNpc(suvi);
         checkBothDone();

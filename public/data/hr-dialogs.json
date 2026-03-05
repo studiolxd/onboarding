@@ -59,6 +59,7 @@
       "¡Hola, {name}! Soy de RRHH.",
       "Voy a presentarte al equipo. ¡Espera un momento!"
     ],
+    "teamOnScreen": ["¡Saluda al equipo y conoce qué es lo que hacen!"],
     "returnVisit": ["¡Hola de nuevo, {name}!", "¿Quieres que te presente a alguien?"],
     "choiceQuestion": "¿A quién quieres conocer?",
     "skipOption": "No, gracias",

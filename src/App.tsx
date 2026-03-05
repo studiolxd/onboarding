@@ -16,6 +16,16 @@ interface GameTask {
     requires?: string[];
 }
 
+type ToastType = 'badge-earned' | 'badge-lost' | 'task-completed' | 'task-assigned';
+
+interface ToastItem {
+    type: ToastType;
+    message: string;
+    key: number;
+}
+
+const TOAST_DURATION = 3000;
+
 function GameWithScorm() {
     const { api } = useScorm();
     const phaserRef = useRef<IRefPhaserGame | null>(null);
@@ -23,7 +33,6 @@ function GameWithScorm() {
 
     const [badges, setBadges] = useState<Badge[]>([]);
     const [showBadges, setShowBadges] = useState(false);
-    const [toast, setToast] = useState<string | null>(null);
     const [showNameInput, setShowNameInput] = useState(false);
     const [nameValue, setNameValue] = useState('');
     const [showNav, setShowNav] = useState(false);
@@ -33,17 +42,57 @@ function GameWithScorm() {
     const [taskDefs, setTaskDefs] = useState<GameTask[]>([]);
     const [completedTasks, setCompletedTasks] = useState<string[]>([]);
     const [showTasks, setShowTasks] = useState(false);
-    const [taskToast, setTaskToast] = useState<string | null>(null);
     const nameInputRef = useRef<HTMLInputElement | null>(null);
+
+    // ─── Toast queue ───
+    const [activeToast, setActiveToast] = useState<ToastItem | null>(null);
+    const toastQueue = useRef<ToastItem[]>([]);
+    const toastCounter = useRef(0);
+    const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const processQueue = useCallback(() => {
+        if (toastTimer.current) return; // already showing
+        const next = toastQueue.current.shift();
+        if (!next) return;
+        setActiveToast(next);
+        toastTimer.current = setTimeout(() => {
+            setActiveToast(null);
+            toastTimer.current = null;
+            processQueue();
+        }, TOAST_DURATION);
+    }, []);
+
+    const enqueueToast = useCallback((type: ToastType, message: string) => {
+        toastQueue.current.push({ type, message, key: toastCounter.current++ });
+        processQueue();
+    }, [processQueue]);
+
+    // Track announced tasks to detect newly available ones
+    const announcedTasks = useRef<Set<string>>(new Set());
+
+    /** Announce available (not yet announced) tasks for a given scene. */
+    const announceTasksForScene = useCallback((scene: string, defs: GameTask[], completed: string[]) => {
+        for (const t of defs) {
+            if (t.scene !== scene) continue;
+            if (announcedTasks.current.has(t.id)) continue;
+            if (completed.includes(t.id)) {
+                announcedTasks.current.add(t.id);
+                continue;
+            }
+            if (!t.requires || t.requires.every(r => completed.includes(r))) {
+                announcedTasks.current.add(t.id);
+                enqueueToast('task-assigned', t.name);
+            }
+        }
+    }, [enqueueToast]);
 
     const addBadge = useCallback((badge: Badge) => {
         setBadges(prev => {
             if (prev.some(b => b.id === badge.id)) return prev;
             return [...prev, badge];
         });
-        setToast(badge.name);
-        setTimeout(() => setToast(null), 3000);
-    }, []);
+        enqueueToast('badge-earned', badge.name);
+    }, [enqueueToast]);
 
     useEffect(() => {
         if (!api) return;
@@ -112,6 +161,10 @@ function GameWithScorm() {
                     // Restaurar tareas completadas
                     if (savedState.completedTasks && savedState.completedTasks.length > 0) {
                         setCompletedTasks(savedState.completedTasks);
+                        // Mark restored tasks as already announced
+                        for (const id of savedState.completedTasks) {
+                            announcedTasks.current.add(id);
+                        }
                     }
                 } catch { /* ignore invalid JSON */ }
             }
@@ -133,7 +186,13 @@ function GameWithScorm() {
 
         // Badge eliminado (cambio de rol)
         const onBadgeRemoved = (data: { id: string }) => {
-            setBadges(prev => prev.filter(b => b.id !== data.id));
+            setBadges(prev => {
+                const removed = prev.find(b => b.id === data.id);
+                if (removed) {
+                    enqueueToast('badge-lost', removed.name);
+                }
+                return prev.filter(b => b.id !== data.id);
+            });
             const currentBadges = savedState.badges ?? [];
             savedState = { ...savedState, badges: currentBadges.filter(b => b.id !== data.id) };
             api.setSuspendData(JSON.stringify(savedState));
@@ -207,6 +266,9 @@ function GameWithScorm() {
 
         // Tarea completada
         const onTaskCompleted = (taskId: string) => {
+            // Skip if already completed
+            if ((savedState.completedTasks ?? []).includes(taskId)) return;
+
             setCompletedTasks(prev => {
                 if (prev.includes(taskId)) return prev;
                 const next = [...prev, taskId];
@@ -215,9 +277,25 @@ function GameWithScorm() {
                 api.commit();
                 return next;
             });
-            // Show toast with task name
-            setTaskToast(taskId);
-            setTimeout(() => setTaskToast(null), 3000);
+            // Toast for completed task
+            setTaskDefs(defs => {
+                const task = defs.find(t => t.id === taskId);
+                if (task) enqueueToast('task-completed', task.name);
+
+                // Check for newly unlocked tasks in current scene only
+                const completed = [...(savedState.completedTasks ?? []), taskId];
+                const scene = savedState.currentScene ?? '';
+                for (const t of defs) {
+                    if (t.scene !== scene) continue;
+                    if (announcedTasks.current.has(t.id)) continue;
+                    if (completed.includes(t.id)) continue;
+                    if (!t.requires || t.requires.every(r => completed.includes(r))) {
+                        announcedTasks.current.add(t.id);
+                        enqueueToast('task-assigned', t.name);
+                    }
+                }
+                return defs;
+            });
         };
 
         const onSceneChanged = (sceneName: string) => {
@@ -256,7 +334,14 @@ function GameWithScorm() {
             EventBus.off('task-defs-loaded', onTaskDefsLoaded);
             EventBus.off('task-completed', onTaskCompleted);
         };
-    }, [api, addBadge]);
+    }, [api, addBadge, enqueueToast]);
+
+    // Announce tasks for the current scene when taskDefs load or scene changes
+    useEffect(() => {
+        if (taskDefs.length === 0) return;
+        announceTasksForScene(currentScene, taskDefs, completedTasks);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [taskDefs, currentScene]);
 
     useEffect(() => {
         const onShow = () => {
@@ -281,6 +366,13 @@ function GameWithScorm() {
             setShowNameInput(false);
             EventBus.emit('name-input-confirmed', trimmed);
         }
+    };
+
+    const toastConfig: Record<ToastType, { icon: string; className: string }> = {
+        'badge-earned': { icon: '\uD83C\uDFC6', className: 'toast toast--badge-earned' },
+        'badge-lost':   { icon: '\u2716',       className: 'toast toast--badge-lost' },
+        'task-completed': { icon: '\u2713',      className: 'toast toast--task-completed' },
+        'task-assigned':  { icon: '\u25CB',      className: 'toast toast--task-assigned' },
     };
 
     return (
@@ -338,7 +430,7 @@ function GameWithScorm() {
                         <div className="badges-list">
                             {badges.map(b => (
                                 <div key={b.id} className="badge-item">
-                                    <span className="badge-icon">🏆</span>
+                                    <span className="badge-icon">{'\uD83C\uDFC6'}</span>
                                     <div>
                                         <div className="badge-name">{b.name}</div>
                                         <div className="badge-desc">{b.description}</div>
@@ -394,19 +486,13 @@ function GameWithScorm() {
                 );
             })()}
 
-            {toast && (
-                <div className="badge-toast">
-                    🏆 {toast}
-                </div>
-            )}
-
-            {taskToast && (() => {
-                const task = taskDefs.find(t => t.id === taskToast);
-                return task ? (
-                    <div className="task-toast">
-                        ✓ {task.name}
+            {activeToast && (() => {
+                const cfg = toastConfig[activeToast.type];
+                return (
+                    <div key={activeToast.key} className={cfg.className}>
+                        {cfg.icon} {activeToast.message}
                     </div>
-                ) : null;
+                );
             })()}
 
             {showNameInput && (

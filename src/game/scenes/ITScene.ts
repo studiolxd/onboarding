@@ -39,6 +39,11 @@ export class ITScene extends BaseScene {
       return undefined;
     });
 
+    // Computer prop, 2 tiles right of IT NPC
+    const compX = 6 * this.TILE + this.TILE / 2;
+    const compY = 18 * this.TILE + this.TILE / 2;
+    this.add.sprite(compX, compY, "computer").play("computer-anim");
+
     EventBus.emit("current-scene-ready", this);
     EventBus.emit("request-scorm-data");
 
@@ -48,6 +53,7 @@ export class ITScene extends BaseScene {
   }
 
   private playSuviEntrance() {
+    this.startCutscene();
     const playerTileX = Math.floor(this.player.x / this.TILE);
     const playerTileY = Math.floor(this.player.y / this.TILE);
     const entryX = this.getOffscreenLeft();
@@ -77,6 +83,7 @@ export class ITScene extends BaseScene {
     const checkBothDone = () => {
       done++;
       if (done >= 2) {
+        this.endCutscene();
         this.isTalking = false;
         this.openForcedDialog("suvi-intro", suviDialogs.itIntro);
       }

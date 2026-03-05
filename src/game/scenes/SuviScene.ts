@@ -121,6 +121,7 @@ export class SuviScene extends BaseScene {
   }
 
   private goToHR() {
+    this.startCutscene();
     // Close dialog if still open
     if (this.isTalking) {
       this.dialogBg?.destroy();
@@ -136,15 +137,11 @@ export class SuviScene extends BaseScene {
     }
 
     const suvi = this.npcs.get("ncp1");
-    const exitX = this.getOffscreenRight();
     const playerTileX = Math.floor(this.player.x / this.TILE);
     const playerTileY = Math.floor(this.player.y / this.TILE);
 
-    // Build straight horizontal paths to the right
-    const playerPath: { x: number; y: number }[] = [];
-    for (let x = playerTileX + 1; x <= exitX; x++) {
-      playerPath.push({ x, y: playerTileY });
-    }
+    const excludeIds = suvi ? [suvi.id] : [];
+    const playerPath = this.buildExitPathRight(playerTileX, playerTileY, excludeIds);
 
     let done = 0;
     const checkBothDone = () => {
@@ -162,10 +159,7 @@ export class SuviScene extends BaseScene {
 
     // Walk Suvi to the right
     if (suvi) {
-      const suviPath: { x: number; y: number }[] = [];
-      for (let x = suvi.tileX + 1; x <= exitX; x++) {
-        suviPath.push({ x, y: suvi.tileY });
-      }
+      const suviPath = this.buildExitPathRight(suvi.tileX, suvi.tileY, [suvi.id]);
       this.walkNpcAlongPath(suvi, suviPath, () => {
         this.removeNpc(suvi);
         checkBothDone();

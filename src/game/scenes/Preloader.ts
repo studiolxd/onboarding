@@ -49,6 +49,11 @@ export class Preloader extends Scene
             frameHeight: 64,
         });
 
+        this.load.spritesheet("computer", "props/computer.png", {
+            frameWidth: 16,
+            frameHeight: 16,
+        });
+
         // Dialog data (reset path — these are in public/data/, not public/assets/)
         this.load.setPath('');
         this.load.json("common-dialogs", "data/common-dialogs.json");
@@ -61,7 +66,7 @@ export class Preloader extends Scene
     create ()
     {
         this.createAnims();
-        this.scene.start('SuviScene');
+        this.scene.start('ITScene');
     }
 
     private createAnims() {
@@ -83,6 +88,13 @@ export class Preloader extends Scene
             key: "walk-left",
             frames: this.anims.generateFrameNumbers("player-left", { start: 0, end: 5 }),
             frameRate: 10,
+            repeat: -1,
+        });
+
+        this.anims.create({
+            key: "computer-anim",
+            frames: this.anims.generateFrameNumbers("computer", { start: 0, end: 7 }),
+            frameRate: 8,
             repeat: -1,
         });
 

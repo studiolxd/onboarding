@@ -54,6 +54,16 @@ export abstract class BaseScene extends Scene {
   protected readonly CHOICE_LINE_H = 18;
   protected arrowUp?: Phaser.GameObjects.Text;
   protected arrowDown?: Phaser.GameObjects.Text;
+  private clickConsumed = false;
+
+  // Cutscene lock — blocks all player input (movement, clicks, dialog)
+  protected isInCutscene = false;
+
+  /** Block all player input (movement, clicks, dialog). */
+  protected startCutscene() { this.isInCutscene = true; this.cursor.setVisible(false); }
+
+  /** Restore player input. */
+  protected endCutscene() { this.isInCutscene = false; }
 
   // Text input
   protected isTypingName = false;
@@ -176,6 +186,11 @@ export abstract class BaseScene extends Scene {
     });
 
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
+      if (this.isTalking || this.isInCutscene) {
+        this.cursor.setVisible(false);
+        return;
+      }
+
       const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
       const tileX = Math.floor(world.x / this.TILE);
       const tileY = Math.floor(world.y / this.TILE);
@@ -201,6 +216,8 @@ export abstract class BaseScene extends Scene {
     });
 
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      if (this.clickConsumed) { this.clickConsumed = false; return; }
+      if (this.isInCutscene) return;
       if (this.isTalking) {
         if (this.isTypingName) return;
         if (this.isChoosing) {
@@ -250,39 +267,47 @@ export abstract class BaseScene extends Scene {
       EventBus.emit("task-defs-loaded", commonData.tasks);
     }
 
-    EventBus.on("learner-name", (name: string) => {
+    const onLearnerName = (name: string) => {
       this.learnerName = name;
-    });
-    EventBus.on("restore-position", (pos: { tileX: number; tileY: number }) => {
+    };
+    const onRestorePosition = (pos: { tileX: number; tileY: number }) => {
       const x = pos.tileX * this.TILE + this.TILE / 2;
       const y = pos.tileY * this.TILE + this.TILE / 2;
       this.player.setPosition(x, y);
-    });
-    EventBus.on("restore-role", (rol: string) => {
+    };
+    const onRestoreRole = (rol: string) => {
       this.learnerRole = rol;
-    });
-    EventBus.on("restore-display-name", (name: string) => {
+    };
+    const onRestoreDisplayName = (name: string) => {
       this.displayName = name;
-    });
-    EventBus.on("restore-gender", (pref: "masculino" | "femenino" | "neutro") => {
+    };
+    const onRestoreGender = (pref: "masculino" | "femenino" | "neutro") => {
       this.genderPref = pref;
-    });
-    EventBus.on("restore-talked-to", (ids: string[]) => {
+    };
+    const onRestoreTalkedTo = (ids: string[]) => {
       for (const id of ids) this.talkedTo.add(id);
-    });
-    EventBus.on("restore-progress", (progress: { visitedSuvi?: boolean; visitedHr1?: boolean; visitedHr2?: boolean; visitedHr3?: boolean }) => {
+    };
+    const onRestoreProgress = (progress: { visitedSuvi?: boolean; visitedHr1?: boolean; visitedHr2?: boolean; visitedHr3?: boolean }) => {
       if (progress.visitedSuvi) this.visitedSuvi = true;
       if (progress.visitedHr1) this.visitedHr1 = true;
       if (progress.visitedHr2) this.visitedHr2 = true;
       if (progress.visitedHr3) this.visitedHr3 = true;
-    });
-
-    EventBus.on("navigate-to-scene", (sceneName: string) => {
+    };
+    const onNavigateToScene = (sceneName: string) => {
       EventBus.emit("scene-changed", sceneName);
       this.scene.start(sceneName, this.getTransitionData());
-    });
+    };
 
-    // Cleanup on scene shutdown
+    EventBus.on("learner-name", onLearnerName);
+    EventBus.on("restore-position", onRestorePosition);
+    EventBus.on("restore-role", onRestoreRole);
+    EventBus.on("restore-display-name", onRestoreDisplayName);
+    EventBus.on("restore-gender", onRestoreGender);
+    EventBus.on("restore-talked-to", onRestoreTalkedTo);
+    EventBus.on("restore-progress", onRestoreProgress);
+    EventBus.on("navigate-to-scene", onNavigateToScene);
+
+    // Cleanup on scene shutdown — only remove THIS scene's handlers
     this.events.on("shutdown", () => {
       // Reset dialog state
       this.isTalking = false;
@@ -292,6 +317,7 @@ export abstract class BaseScene extends Scene {
       this.activeChoice = null;
       this.currentNpcId = null;
       this.isMoving = false;
+      this.endCutscene();
       this.movePath = [];
       this.pendingNpc = null;
 
@@ -299,15 +325,15 @@ export abstract class BaseScene extends Scene {
       this.input.keyboard!.enableGlobalCapture();
       EventBus.emit("hide-name-input");
 
-      // Remove EventBus listeners
-      EventBus.off("learner-name");
-      EventBus.off("restore-position");
-      EventBus.off("restore-role");
-      EventBus.off("restore-display-name");
-      EventBus.off("restore-gender");
-      EventBus.off("restore-talked-to");
-      EventBus.off("restore-progress");
-      EventBus.off("navigate-to-scene");
+      // Remove only this scene's EventBus listeners
+      EventBus.off("learner-name", onLearnerName);
+      EventBus.off("restore-position", onRestorePosition);
+      EventBus.off("restore-role", onRestoreRole);
+      EventBus.off("restore-display-name", onRestoreDisplayName);
+      EventBus.off("restore-gender", onRestoreGender);
+      EventBus.off("restore-talked-to", onRestoreTalkedTo);
+      EventBus.off("restore-progress", onRestoreProgress);
+      EventBus.off("navigate-to-scene", onNavigateToScene);
       EventBus.off("name-input-confirmed");
     });
   }
@@ -343,6 +369,7 @@ export abstract class BaseScene extends Scene {
 
   update() {
     if (!this.player || !this.cursors) return;
+    if (this.isInCutscene) return;
 
     if (this.isTalking) {
       if (this.isTypingName) return;
@@ -715,12 +742,75 @@ export abstract class BaseScene extends Scene {
     return Math.max(Math.floor(visibleLeft / this.TILE) - 2, 0);
   }
 
+  /**
+   * Build an exit path to the right that avoids NPCs using pathfinding.
+   * @param fromX    starting tile X
+   * @param fromY    starting tile Y
+   * @param excludeIds NPC ids that are exiting too (unblocked during pathfinding)
+   */
+  protected buildExitPathRight(fromX: number, fromY: number, excludeIds: string[] = []): { x: number; y: number }[] {
+    const exitX = this.getOffscreenRight();
+
+    // Temporarily unblock NPCs that are exiting with us
+    const reblock: number[] = [];
+    for (const id of excludeIds) {
+      const npc = this.npcs.get(id);
+      if (npc) {
+        const key = this.tileKey(npc.tileX, npc.tileY);
+        if (this.blocked.has(key)) {
+          this.blocked.delete(key);
+          reblock.push(key);
+        }
+      }
+    }
+
+    // Also unblock the player's own tile
+    const playerKey = this.tileKey(fromX, fromY);
+    const playerWasBlocked = this.blocked.has(playerKey);
+    this.blocked.delete(playerKey);
+
+    // Find a reachable tile near the right edge of the map
+    let path: { x: number; y: number }[] = [];
+    for (let x = exitX; x > fromX && path.length === 0; x--) {
+      for (let dy = 0; dy <= 5 && path.length === 0; dy++) {
+        for (const sign of dy === 0 ? [0] : [-1, 1]) {
+          const ty = fromY + sign * dy;
+          if (ty < 0 || ty >= this.map.height) continue;
+          if (this.isTileBlocked(x, ty)) continue;
+          path = this.findPath(fromX, fromY, x, ty);
+          if (path.length > 0) break;
+        }
+      }
+    }
+
+    // Re-block
+    for (const key of reblock) this.blocked.add(key);
+    if (playerWasBlocked) this.blocked.add(playerKey);
+
+    // Extend path straight to offscreen
+    const lastX = path.length > 0 ? path[path.length - 1].x : fromX;
+    const lastY = path.length > 0 ? path[path.length - 1].y : fromY;
+    for (let x = lastX + 1; x <= exitX; x++) {
+      path.push({ x, y: lastY });
+    }
+
+    // Fallback: straight line if pathfinding failed entirely
+    if (path.length === 0) {
+      for (let x = fromX + 1; x <= exitX; x++) {
+        path.push({ x, y: fromY });
+      }
+    }
+
+    return path;
+  }
+
   // ─── Dialog ───
 
   protected openDialog(npc: NpcData) {
     if (this.isTalking) return;
 
     this.isTalking = true;
+    this.cursor.setVisible(false);
     this.currentNpcId = npc.id;
     this.talkQueue = typeof npc.messages === "function" ? npc.messages() : npc.messages;
     this.talkIndex = 0;
@@ -759,6 +849,19 @@ export abstract class BaseScene extends Scene {
 
   /** Opens a forced dialog without needing adjacency (e.g. for welcome/finale sequences) */
   protected openForcedDialog(npcId: string, messages: string[]) {
+    // Close any existing dialog to avoid stacking
+    if (this.isTalking) {
+      this.dialogBg?.destroy();
+      this.dialogText?.destroy();
+      this.dialogHint?.destroy();
+      this.dialogBg = undefined;
+      this.dialogText = undefined;
+      this.dialogHint = undefined;
+      this.choiceTexts.forEach((t) => t.destroy());
+      this.choiceTexts = [];
+      this.destroyArrows();
+    }
+
     this.isTalking = true;
     this.currentNpcId = npcId;
     this.talkQueue = messages;
@@ -871,6 +974,7 @@ export abstract class BaseScene extends Scene {
         .setResolution(this.ZOOM).setScrollFactor(0).setDepth(1001)
         .setInteractive({ useHandCursor: true })
         .on("pointerdown", () => {
+          this.clickConsumed = true;
           const optIdx = this.choiceScrollTop + slot;
           if (optIdx < this.activeChoice!.options.length) {
             this.selectChoice(optIdx);
@@ -888,14 +992,14 @@ export abstract class BaseScene extends Scene {
         .text(arrowX, baseY - arrowPad, "▲", { fontFamily: "monospace", fontSize: "8px", color: "#666666", padding: { top: 2, bottom: 2, left: 2, right: 2 } })
         .setResolution(this.ZOOM).setScrollFactor(0).setDepth(1001)
         .setInteractive({ useHandCursor: true })
-        .on("pointerdown", () => { if (this.choiceIndex > 0) this.selectChoice(this.choiceIndex - 1); });
+        .on("pointerdown", () => { this.clickConsumed = true; if (this.choiceIndex > 0) this.selectChoice(this.choiceIndex - 1); });
 
       const lastSlotY = baseY + (visibleCount - 1) * this.CHOICE_LINE_H;
       this.arrowDown = this.add
         .text(arrowX, lastSlotY + this.CHOICE_LINE_H + arrowPad, "▼", { fontFamily: "monospace", fontSize: "8px", color: "#666666", padding: { top: 2, bottom: 2, left: 2, right: 2 } })
         .setResolution(this.ZOOM).setScrollFactor(0).setDepth(1001)
         .setInteractive({ useHandCursor: true })
-        .on("pointerdown", () => { if (this.choiceIndex < this.activeChoice!.options.length - 1) this.selectChoice(this.choiceIndex + 1); });
+        .on("pointerdown", () => { this.clickConsumed = true; if (this.choiceIndex < this.activeChoice!.options.length - 1) this.selectChoice(this.choiceIndex + 1); });
     }
 
     this.selectChoice(0);
@@ -920,8 +1024,8 @@ export abstract class BaseScene extends Scene {
       this.choiceTexts[slot].setColor(color);
     }
 
-    if (this.arrowUp) this.arrowUp.setColor(this.choiceScrollTop > 0 ? "#ffffff" : "#444444");
-    if (this.arrowDown) this.arrowDown.setColor(this.choiceScrollTop + maxVis < total ? "#ffffff" : "#444444");
+    if (this.arrowUp) this.arrowUp.setColor(index > 0 ? "#ffffff" : "#444444");
+    if (this.arrowDown) this.arrowDown.setColor(index < total - 1 ? "#ffffff" : "#444444");
   }
 
   protected destroyArrows() {

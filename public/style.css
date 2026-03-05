@@ -148,8 +148,8 @@ body {
     margin-top: 2px;
 }
 
-/* Toast notification */
-.badge-toast {
+/* Toast notification (unified queue) */
+.toast {
     position: absolute;
     top: 12px;
     left: 50%;
@@ -157,15 +157,18 @@ body {
     z-index: 200;
     padding: 12px 24px;
     background: rgba(0, 0, 0, 0.9);
-    border: 2px solid #f0c040;
-    color: #f0c040;
     font-family: monospace;
     font-size: 16px;
-    animation: badge-toast-anim 3s ease-in-out forwards;
+    animation: toast-anim 3s ease-in-out forwards;
     pointer-events: none;
 }
 
-@keyframes badge-toast-anim {
+.toast--badge-earned { border: 2px solid #f0c040; color: #f0c040; }
+.toast--badge-lost   { border: 2px solid #e06060; color: #e06060; }
+.toast--task-completed { border: 2px solid #6ec86e; color: #6ec86e; }
+.toast--task-assigned  { border: 2px solid #60b0f0; color: #60b0f0; }
+
+@keyframes toast-anim {
     0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
     10% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.05); }
     20% { transform: translateX(-50%) translateY(0) scale(1); }
@@ -265,21 +268,6 @@ body {
     flex-shrink: 0;
 }
 
-.task-toast {
-    position: absolute;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 200;
-    padding: 12px 24px;
-    background: rgba(0, 0, 0, 0.9);
-    border: 2px solid #6ec86e;
-    color: #6ec86e;
-    font-family: monospace;
-    font-size: 16px;
-    animation: badge-toast-anim 3s ease-in-out forwards;
-    pointer-events: none;
-}
 
 /* ─── Navigation Map ─── */
 
