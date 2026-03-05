@@ -462,10 +462,14 @@ export class HRScene extends BaseScene {
         if (path.length > 0) {
           this.walkNpcAlongPath(npc, path, () => {
             npc.walking = false;
+            npc.sprite.setTexture("player-down", 0);
+            npc.sprite.setFlipX(false);
           });
         } else {
           this.teleportNpc(npc, destX, destY);
           npc.walking = false;
+          npc.sprite.setTexture("player-down", 0);
+          npc.sprite.setFlipX(false);
         }
       });
     });
@@ -496,10 +500,14 @@ export class HRScene extends BaseScene {
         if (path.length > 0) {
           this.walkNpcAlongPath(npc, path, () => {
             npc.walking = false;
+            npc.sprite.setTexture("player-down", 0);
+            npc.sprite.setFlipX(false);
           });
         } else {
           this.teleportNpc(npc, destX, destY);
           npc.walking = false;
+          npc.sprite.setTexture("player-down", 0);
+          npc.sprite.setFlipX(false);
         }
       });
     });
@@ -616,10 +624,14 @@ export class HRScene extends BaseScene {
     if (path.length > 0) {
       this.walkNpcAlongPath(npc, path, () => {
         npc.walking = false;
+        npc.sprite.setTexture("player-down", 0);
+        npc.sprite.setFlipX(false);
       });
     } else {
       this.teleportNpc(npc, destX, destY);
       npc.walking = false;
+      npc.sprite.setTexture("player-down", 0);
+      npc.sprite.setFlipX(false);
     }
   }
 

@@ -15,6 +15,7 @@
       "options": ["Masculino", "Femenino", "Neutro"]
     },
     "afterGender": ["{greeting}", "Te llevo con el equipo de RRHH.", "Ellos te presentarán al equipo y te explicarán cómo trabajamos."],
-    "hrIntro": ["Te dejo con el equipo de RRHH.", "¡Que te vaya bien!"]
+    "hrIntro": ["Te dejo con el equipo de RRHH.", "¡Que te vaya bien!"],
+    "itIntro": ["Aquí está el equipo de IT.", "Ellos te ayudarán con las herramientas y accesos.", "¡Te dejo con ellos!"]
   }
 }
