@@ -325,6 +325,9 @@ export abstract class BaseScene extends Scene {
   }
 
   protected setupBaseEventListeners() {
+    // Notify React of the current scene (important for initial scene)
+    EventBus.emit("scene-changed", this.scene.key);
+
     // Emit task definitions from common-dialogs.json
     const commonData = this.cache.json.get("common-dialogs");
     if (commonData?.tasks) {
