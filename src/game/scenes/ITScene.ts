@@ -1,6 +1,6 @@
 import { EventBus } from "../EventBus";
 import { BaseScene } from "./BaseScene";
-import { NpcData, SceneTransitionData } from "../types";
+import { NpcChoice, NpcData, SceneTransitionData } from "../types";
 
 /**
  * computerPhase tracks the HR NPC2 progressive flow:
@@ -18,13 +18,15 @@ export class ITScene extends BaseScene {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private d: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private d2: any; // hr2-it dialogs
+  private d2: any; // hr2 dialogs (IT scene)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private dSec: any; // security-npc dialogs
 
   private computerPhase = 0;
   private hrNpc2: NpcData | null = null;
   private watchedVideos = new Set<string>();
+  private suviPrlNpc: NpcData | null = null;
+  private dataSecutiryDone = false;
 
   constructor() {
     super("ITScene");
@@ -50,8 +52,8 @@ export class ITScene extends BaseScene {
     if (this.d.firstVisit.f) (this.d.firstVisit.f as any)._audio = "it-firstVisit-f";
     if (this.d.firstVisit.n) (this.d.firstVisit.n as any)._audio = "it-firstVisit-n";
 
-    this.d2 = this.cache.json.get("it-dialogs")["hr2-it"];
-    this.annotateAudio(this.d2, "it-hr2-it");
+    this.d2 = this.cache.json.get("it-dialogs")["hr2"];
+    this.annotateAudio(this.d2, "it-hr2");
 
     this.dSec = this.cache.json.get("it-dialogs")["security-npc"];
     this.annotateAudio(this.dSec, "it-security-npc");
@@ -245,7 +247,7 @@ export class ITScene extends BaseScene {
       this.hrNpc2 = null;
     }
 
-    const hrNpc = this.spawnNpcAt("hr2-it", "npc1-down", entryX, npcY, messages);
+    const hrNpc = this.spawnNpcAt("hr2", "npc1-down", entryX, npcY, messages);
     this.hrNpc2 = hrNpc;
 
     // Walk to one tile left of player
@@ -308,7 +310,7 @@ export class ITScene extends BaseScene {
     const suviY = playerTileY - 1;
     const suviDialogs = this.cache.json.get("suvi-dialogs").ncp1;
     this.annotateAudio(suviDialogs, "suvi");
-    const suvi = this.spawnNpcAt("suvi-escort", "npc1-down", entryX, suviY, suviDialogs.itIntro);
+    const suvi = this.spawnNpcAt("suvi", "npc1-down", entryX, suviY, suviDialogs.itIntro);
 
     // Build paths to walk in
     const playerPath: { x: number; y: number }[] = [];
@@ -367,6 +369,27 @@ export class ITScene extends BaseScene {
       return false;
     }
 
+    if (npcId === "suvi-prl") {
+      if (choice === "Ir a PRL") {
+        this.goToPRL();
+        return true;
+      }
+      // "Quedarme en IT por ahora" — dismiss Suvi
+      if (this.suviPrlNpc) {
+        const suvi = this.suviPrlNpc;
+        this.suviPrlNpc = null;
+        const exitX = this.getOffscreenLeft();
+        const path: { x: number; y: number }[] = [];
+        for (let x = suvi.tileX - 1; x >= exitX; x--) {
+          path.push({ x, y: suvi.tileY });
+        }
+        this.walkNpcAlongPath(suvi, path, () => {
+          this.removeNpc(suvi);
+        });
+      }
+      return false;
+    }
+
     if (npcId !== "it-npc") return false;
 
     const opts = this.d.firstChoice.options;
@@ -404,7 +427,7 @@ export class ITScene extends BaseScene {
 
     // Suvi walks away after intro
     if (npcId === "suvi-intro") {
-      const suvi = this.npcs.get("suvi-escort");
+      const suvi = this.npcs.get("suvi");
       if (suvi) {
         const exitX = this.getOffscreenLeft();
         const suviPath: { x: number; y: number }[] = [];
@@ -417,10 +440,26 @@ export class ITScene extends BaseScene {
       }
     }
 
-    // Security NPC — award badge after completing the talk
-    if (npcId === "security-npc" && this.computerPhase >= 6) {
+    // Security NPC — award badge after completing the talk, then spawn Suvi for PRL
+    if (npcId === "security-npc" && this.computerPhase >= 6 && !this.dataSecutiryDone) {
+      this.dataSecutiryDone = true;
       const badgeData = this.cache.json.get("it-dialogs").badges["data-security"];
       EventBus.emit("badge-earned", badgeData);
+      this.spawnSuviForPRL();
+    }
+
+    // Suvi PRL choice dialog closed without choosing "Ir a PRL"
+    if (npcId === "suvi-prl" && this.suviPrlNpc) {
+      const suvi = this.suviPrlNpc;
+      this.suviPrlNpc = null;
+      const exitX = this.getOffscreenLeft();
+      const path: { x: number; y: number }[] = [];
+      for (let x = suvi.tileX - 1; x >= exitX; x--) {
+        path.push({ x, y: suvi.tileY });
+      }
+      this.walkNpcAlongPath(suvi, path, () => {
+        this.removeNpc(suvi);
+      });
     }
 
     // HR NPC2 dialog completed
@@ -435,6 +474,87 @@ export class ITScene extends BaseScene {
       if (this.computerPhase === 6) {
         this.dismissHrNpc2();
       }
+    }
+  }
+
+  /** Spawn Suvi after data-security badge, walk to player, offer PRL choice. */
+  private spawnSuviForPRL() {
+    this.startCutscene();
+
+    const playerTileX = Math.floor(this.player.x / this.TILE);
+    const playerTileY = Math.floor(this.player.y / this.TILE);
+    const entryX = this.getOffscreenLeft();
+
+    const suviMessages = [
+      "Ahora que conoces todos los aspectos de IT para trabajar, es importante trabajar seguro.",
+      "Te recomiendo hacer la formación en Prevención de Riesgos Laborales.",
+    ];
+    const suviChoice: NpcChoice = {
+      question: "¿Quieres ir a la formación de PRL?",
+      options: ["Ir a PRL", "Quedarme en IT por ahora"],
+    };
+
+    const suvi = this.spawnNpcAt("suvi-prl", "npc1-down", entryX, playerTileY, suviMessages, () => suviChoice);
+    this.suviPrlNpc = suvi;
+
+    const destX = playerTileX - 1;
+    const path: { x: number; y: number }[] = [];
+    for (let x = entryX + 1; x <= destX; x++) {
+      path.push({ x, y: playerTileY });
+    }
+
+    this.walkNpcAlongPath(suvi, path, () => {
+      suvi.walking = false;
+      this.endCutscene();
+      this.openForcedDialog("suvi-prl", suviMessages);
+    });
+  }
+
+  private goToPRL() {
+    this.startCutscene();
+    this.stopDialogAudio();
+
+    if (this.isTalking) {
+      this.dialogBg?.destroy();
+      this.dialogText?.destroy();
+      this.dialogHint?.destroy();
+      this.dialogBg = undefined;
+      this.dialogText = undefined;
+      this.dialogHint = undefined;
+      this.choiceTexts.forEach((t) => t.destroy());
+      this.choiceTexts = [];
+      this.destroyArrows();
+      this.isTalking = false;
+    }
+
+    const playerTileX = Math.floor(this.player.x / this.TILE);
+    const playerTileY = Math.floor(this.player.y / this.TILE);
+
+    const excludeIds = this.suviPrlNpc ? [this.suviPrlNpc.id] : [];
+    const playerPath = this.buildExitPathRight(playerTileX, playerTileY, excludeIds);
+
+    let done = 0;
+    const checkBothDone = () => {
+      done++;
+      if (done >= 2) {
+        const data = this.getTransitionData();
+        data.fromScene = "ITScene";
+        EventBus.emit("scene-changed", "PRLScene");
+        this.scene.start("PRLScene", data);
+      }
+    };
+
+    this.walkPlayerAlongPath(playerPath, checkBothDone);
+
+    if (this.suviPrlNpc) {
+      const suvi = this.suviPrlNpc;
+      const suviPath = this.buildExitPathRight(suvi.tileX, suvi.tileY, [suvi.id]);
+      this.walkNpcAlongPath(suvi, suviPath, () => {
+        this.removeNpc(suvi);
+        checkBothDone();
+      });
+    } else {
+      checkBothDone();
     }
   }
 }

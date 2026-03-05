@@ -16,6 +16,12 @@
     { "id": "watch-frappe", "name": "Visualiza el vídeo de Frappe", "scene": "ITScene", "requires": ["meet-it"] },
     { "id": "watch-fichar", "name": "Visualiza el vídeo de fichar", "scene": "ITScene", "requires": ["learn-fichar"] },
     { "id": "watch-ausencia", "name": "Visualiza el vídeo de ausencias", "scene": "ITScene", "requires": ["learn-flexible"] },
-    { "id": "watch-turno", "name": "Visualiza el vídeo de turnos", "scene": "ITScene", "requires": ["learn-flexible"] }
+    { "id": "watch-turno", "name": "Visualiza el vídeo de turnos", "scene": "ITScene", "requires": ["learn-flexible"] },
+    { "id": "intro-prl", "name": "Introducción al PRL", "scene": "PRLScene" },
+    { "id": "risk-ergonomicos", "name": "Riesgos ergonómicos", "scene": "PRLScene", "requires": ["intro-prl"] },
+    { "id": "risk-visuales", "name": "Riesgos visuales", "scene": "PRLScene", "requires": ["intro-prl"] },
+    { "id": "risk-psicosociales", "name": "Riesgos psicosociales", "scene": "PRLScene", "requires": ["intro-prl"] },
+    { "id": "risk-electricos", "name": "Riesgos eléctricos y de cableado", "scene": "PRLScene", "requires": ["intro-prl"] },
+    { "id": "risk-pantallas", "name": "Riesgos del uso prolongado de pantallas", "scene": "PRLScene", "requires": ["intro-prl"] }
   ]
 }

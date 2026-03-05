@@ -196,7 +196,7 @@ export class HRScene extends BaseScene {
     const suviY = playerTileY - 1;
     const suviDialogs = this.cache.json.get("suvi-dialogs").ncp1;
     this.annotateAudio(suviDialogs, "suvi");
-    const suvi = this.spawnNpcAt("suvi-escort", "npc1-down", entryX, suviY, suviDialogs.hrIntro);
+    const suvi = this.spawnNpcAt("suvi", "npc1-down", entryX, suviY, suviDialogs.hrIntro);
 
     // Build paths to walk in
     const playerPath: { x: number; y: number }[] = [];
@@ -316,7 +316,7 @@ export class HRScene extends BaseScene {
 
     // Suvi entrance: after intro dialog, Suvi walks away
     if (npcId === "suvi-intro") {
-      const suvi = this.npcs.get("suvi-escort");
+      const suvi = this.npcs.get("suvi");
       if (suvi) {
         const exitX = this.getOffscreenLeft();
         const suviPath: { x: number; y: number }[] = [];
@@ -769,7 +769,7 @@ export class HRScene extends BaseScene {
       const destY = playerTileY;
 
       const suviDialogs = this.cache.json.get("suvi-dialogs").ncp1;
-      const suvi = this.spawnNpcAt("suvi-finale", "npc1-down", entryX, destY, suviDialogs.hrIntro);
+      const suvi = this.spawnNpcAt("suvi", "npc1-down", entryX, destY, suviDialogs.hrIntro);
       this.suviFinaleNpc = suvi;
 
       const suviPath: { x: number; y: number }[] = [];

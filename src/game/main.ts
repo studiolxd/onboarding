@@ -4,6 +4,7 @@ import { HRScene } from './scenes/HRScene';
 import { SuviScene } from './scenes/SuviScene';
 import { ITScene } from './scenes/ITScene';
 import { CoffeeScene } from './scenes/CoffeeScene';
+import { PRLScene } from './scenes/PRLScene';
 import { MainMenu } from './scenes/MainMenu';
 import { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
@@ -28,6 +29,7 @@ const config: Phaser.Types.Core.GameConfig = {
         HRScene,
         ITScene,
         CoffeeScene,
+        PRLScene,
         GameOver
     ]
 };

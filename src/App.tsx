@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { ScormProvider, useScorm, useScormAutoTerminate } from '@studiolxd/react-scorm';
 import { IRefPhaserGame, PhaserGame } from './PhaserGame';
 import { ComputerScreen } from './ComputerScreen';
+import { PRLInfoPanel } from './PRLInfoPanel';
 import { EventBus } from './game/EventBus';
 
 interface Badge {
@@ -40,6 +41,7 @@ function GameWithScorm() {
     const [currentScene, setCurrentScene] = useState('SuviScene');
     const [visitedSuvi, setVisitedSuvi] = useState(false);
     const [allHrDone, setAllHrDone] = useState(false);
+    const [allItDone, setAllItDone] = useState(false);
     const [taskDefs, setTaskDefs] = useState<GameTask[]>([]);
     const [completedTasks, setCompletedTasks] = useState<string[]>([]);
     const [showSettings, setShowSettings] = useState(false);
@@ -106,6 +108,7 @@ function GameWithScorm() {
             displayName?: string; genderPref?: string; talkedTo?: string[];
             completedTasks?: string[]; currentScene?: string;
             watchedVideos?: string[];
+            completedRisks?: string[];
         } = {};
 
         // Cuando el juego pide datos SCORM (al terminar create())
@@ -157,6 +160,7 @@ function GameWithScorm() {
                     }
                     if (derivedVisitedSuvi) setVisitedSuvi(true);
                     if (derivedVisitedHr1 && derivedVisitedHr2 && derivedVisitedHr3) setAllHrDone(true);
+                    if (bb.some(b => b.id === 'data-security')) setAllItDone(true);
                     if (savedState.currentScene) setCurrentScene(savedState.currentScene);
                     // Restaurar badges
                     if (savedState.badges && savedState.badges.length > 0) {
@@ -173,6 +177,10 @@ function GameWithScorm() {
                     // Restaurar vídeos vistos
                     if (savedState.watchedVideos && savedState.watchedVideos.length > 0) {
                         EventBus.emit('restore-watched-videos', savedState.watchedVideos);
+                    }
+                    // Restaurar riesgos PRL completados
+                    if (savedState.completedRisks && savedState.completedRisks.length > 0) {
+                        EventBus.emit('restore-completed-risks', savedState.completedRisks);
                     }
                 } catch { /* ignore invalid JSON */ }
             }
@@ -221,6 +229,8 @@ function GameWithScorm() {
                 const h2 = tt.includes('hr2');
                 const h3 = newBadges.some(b => b.id.startsWith('rol-'));
                 if (h1 && h2 && h3) setAllHrDone(true);
+                // Unlock PRL when data-security badge is earned
+                if (newBadges.some(b => b.id === 'data-security')) setAllItDone(true);
             }
         };
 
@@ -321,6 +331,14 @@ function GameWithScorm() {
             api.commit();
         };
 
+        const onPrlInfoClosed = (riskId: string) => {
+            const prev = savedState.completedRisks ?? [];
+            if (prev.includes(riskId)) return;
+            savedState = { ...savedState, completedRisks: [...prev, riskId] };
+            api.setSuspendData(JSON.stringify(savedState));
+            api.commit();
+        };
+
         EventBus.on('request-scorm-data', onRequestScormData);
         EventBus.on('save-position', onSavePosition);
         EventBus.on('choice-made', onChoiceMade);
@@ -335,6 +353,7 @@ function GameWithScorm() {
         EventBus.on('task-defs-loaded', onTaskDefsLoaded);
         EventBus.on('task-completed', onTaskCompleted);
         EventBus.on('video-watched', onVideoWatched);
+        EventBus.on('prl-info-closed', onPrlInfoClosed);
 
         return () => {
             EventBus.off('request-scorm-data', onRequestScormData);
@@ -351,6 +370,7 @@ function GameWithScorm() {
             EventBus.off('task-defs-loaded', onTaskDefsLoaded);
             EventBus.off('task-completed', onTaskCompleted);
             EventBus.off('video-watched', onVideoWatched);
+            EventBus.off('prl-info-closed', onPrlInfoClosed);
         };
     }, [api, addBadge, enqueueToast]);
 
@@ -402,6 +422,7 @@ function GameWithScorm() {
         <div id="app">
             <PhaserGame ref={phaserRef} />
             <ComputerScreen />
+            <PRLInfoPanel />
 
             <button
                 className="settings-btn"
@@ -463,6 +484,13 @@ function GameWithScorm() {
                         onClick={() => { if (allHrDone) { EventBus.emit('navigate-to-scene', 'ITScene'); setShowNav(false); } }}
                     >
                         IT{!allHrDone ? ' (bloqueado)' : ''}
+                    </button>
+                    <button
+                        className={`nav-map-item${!allItDone ? ' nav-map-item--locked' : ''}${currentScene === 'PRLScene' ? ' nav-map-item--active' : ''}`}
+                        disabled={!allItDone}
+                        onClick={() => { if (allItDone) { EventBus.emit('navigate-to-scene', 'PRLScene'); setShowNav(false); } }}
+                    >
+                        PRL{!allItDone ? ' (bloqueado)' : ''}
                     </button>
                 </div>
             )}

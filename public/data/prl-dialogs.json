@@ -1,0 +1,88 @@
+{
+  "hr3": {
+    "intro": [
+      "Hola, {name}. Soy la responsable de Prevención de Riesgos Laborales.",
+      "Para trabajar de forma segura, es fundamental conocer los conceptos básicos de PRL.",
+      "La PRL se basa en identificar, evaluar y controlar los riesgos en el entorno laboral.",
+      "Como trabajador, tienes derechos: formación, información y participación en materia de seguridad.",
+      "Y también obligaciones: cumplir las medidas preventivas y usar correctamente los equipos.",
+      "Todo esto está regulado por la Ley 31/1995 de Prevención de Riesgos Laborales.",
+      "Esta ley también se aplica al teletrabajo, así que es importante que conozcas los riesgos específicos.",
+      "Ahora siéntate en el escritorio para aprender sobre los riesgos del teletrabajo."
+    ],
+    "notReady": ["Soy la responsable de PRL. Ven a hablar conmigo antes de usar el escritorio."]
+  },
+  "desk": {
+    "notReady": ["Aún no sé los riesgos de mi trabajo."]
+  },
+  "risks": {
+    "ergonomicos": {
+      "title": "Riesgos ergonómicos",
+      "content": [
+        "Los riesgos ergonómicos están relacionados con la postura y el mobiliario.",
+        "Es fundamental mantener una postura correcta al trabajar sentado:",
+        "- La espalda debe estar apoyada en el respaldo de la silla.",
+        "- Los pies deben estar apoyados en el suelo o en un reposapiés.",
+        "- Los brazos deben formar un ángulo de 90 grados al teclear.",
+        "- La pantalla debe estar a la altura de los ojos, a unos 50-70 cm de distancia.",
+        "Realiza pausas activas cada 45-60 minutos para estirarte y cambiar de postura.",
+        "Un entorno ergonómico reduce el riesgo de lesiones musculoesqueléticas."
+      ]
+    },
+    "visuales": {
+      "title": "Riesgos visuales",
+      "content": [
+        "El trabajo prolongado frente a pantallas puede causar fatiga visual.",
+        "Síntomas comunes: ojos secos, visión borrosa, dolor de cabeza.",
+        "Para prevenirlo, sigue la regla 20-20-20:",
+        "- Cada 20 minutos, mira a un objeto a 20 pies (6 metros) durante 20 segundos.",
+        "Ajusta el brillo de la pantalla al entorno y evita reflejos.",
+        "Parpadea con frecuencia para mantener los ojos hidratados.",
+        "La iluminación del espacio de trabajo debe ser adecuada, evitando deslumbramientos."
+      ]
+    },
+    "psicosociales": {
+      "title": "Riesgos psicosociales",
+      "content": [
+        "El teletrabajo puede generar riesgos psicosociales si no se gestiona bien.",
+        "El aislamiento social es uno de los principales riesgos: mantén el contacto con tu equipo.",
+        "Establece límites claros entre la vida laboral y personal.",
+        "Define un horario de trabajo y respétalo para evitar el tecnoestrés.",
+        "Comunica tus necesidades a tu responsable si sientes sobrecarga.",
+        "Utiliza las herramientas de comunicación del equipo para mantener el vínculo social.",
+        "Tu bienestar emocional es tan importante como tu productividad."
+      ]
+    },
+    "electricos": {
+      "title": "Riesgos eléctricos y de cableado",
+      "content": [
+        "En el teletrabajo, el entorno eléctrico del hogar se convierte en tu espacio laboral.",
+        "Verifica que las instalaciones eléctricas de tu zona de trabajo estén en buen estado.",
+        "No sobrecargues las regletas ni los enchufes múltiples.",
+        "Mantén los cables organizados para evitar tropiezos y caídas.",
+        "No utilices equipos eléctricos con cables dañados o pelados.",
+        "Asegúrate de tener un diferencial y toma de tierra en tu instalación.",
+        "En caso de duda, consulta con un electricista profesional."
+      ]
+    },
+    "pantallas": {
+      "title": "Riesgos del uso prolongado de pantallas",
+      "content": [
+        "El uso continuado de pantallas de visualización de datos (PVD) tiene regulación específica.",
+        "El RD 488/1997 establece las disposiciones mínimas de seguridad para puestos con PVD.",
+        "Se considera usuario de PVD quien trabaja más de 4 horas diarias con pantalla.",
+        "La empresa debe garantizar una evaluación del puesto de trabajo, incluso en teletrabajo.",
+        "Tienes derecho a reconocimientos médicos específicos de la vista.",
+        "La pantalla debe ser orientable e inclinable, con caracteres bien definidos.",
+        "Alterna tareas con pantalla y sin ella siempre que sea posible."
+      ]
+    }
+  },
+  "badges": {
+    "safe-work": {
+      "id": "safe-work",
+      "name": "Trabajo seguro",
+      "description": "Has aprendido sobre los riesgos del teletrabajo y la prevención"
+    }
+  }
+}
