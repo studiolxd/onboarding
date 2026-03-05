@@ -1,6 +1,6 @@
 import { EventBus } from "../EventBus";
 import { BaseScene } from "./BaseScene";
-import { SceneTransitionData } from "../types";
+import { NpcData, SceneTransitionData } from "../types";
 
 export class PRLScene extends BaseScene {
   private talkedToHr3 = false;
@@ -14,6 +14,10 @@ export class PRLScene extends BaseScene {
 
   private completedRisks = new Set<string>();
   private readonly RISK_IDS = ["ergonomicos", "visuales", "psicosociales", "electricos", "pantallas"];
+  private badgeAwarded = false;
+  private hr1Npc: NpcData | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private dHr1: any;
 
   constructor() {
     super("PRLScene");
@@ -37,6 +41,8 @@ export class PRLScene extends BaseScene {
     this.annotateAudio(this.d, "prl-hr3");
     this.dDesk = prlData["desk"];
     this.dRisks = prlData["risks"];
+    this.dHr1 = prlData["hr1"];
+    this.annotateAudio(this.dHr1, "prl-hr1");
 
     // HR3 NPC
     this.spawnNpc(objLayer, "hr3", "npc1-down", () => {
@@ -208,9 +214,34 @@ export class PRLScene extends BaseScene {
         }
       }
       // "Levantarse" — close dialog and check if badge earned
-      if (this.completedRisks.size >= this.RISK_IDS.length) {
+      if (this.completedRisks.size >= this.RISK_IDS.length && !this.badgeAwarded) {
+        this.badgeAwarded = true;
         const badgeData = this.cache.json.get("prl-dialogs").badges["safe-work"];
         EventBus.emit("badge-earned", badgeData);
+        // Don't return false yet — onDialogClosed will trigger the HR3→HR1 sequence
+      }
+      return false;
+    }
+
+    // HR1 disconnect choice
+    if (npcId === "hr1-disconnect") {
+      const opts = this.dHr1.disconnectChoice.options;
+      if (choice === opts[0]) { // "Ir a desconexión digital"
+        this.goToDisconnect();
+        return true;
+      }
+      // "Quedarme aquí por ahora" — dismiss HR1
+      if (this.hr1Npc) {
+        const hr1 = this.hr1Npc;
+        this.hr1Npc = null;
+        const exitX = this.getOffscreenLeft();
+        const path: { x: number; y: number }[] = [];
+        for (let x = hr1.tileX - 1; x >= exitX; x--) {
+          path.push({ x, y: hr1.tileY });
+        }
+        this.walkNpcAlongPath(hr1, path, () => {
+          this.removeNpc(hr1);
+        });
       }
       return false;
     }
@@ -237,6 +268,145 @@ export class PRLScene extends BaseScene {
           this.removeNpc(suvi);
         });
       }
+    }
+
+    // After levantarse with badge → trigger HR3 farewell sequence
+    if (npcId === "desk" && this.badgeAwarded && !this.hr1Npc) {
+      this.startHr3FarewellSequence();
+    }
+    if (npcId === "desk2" && this.badgeAwarded && !this.hr1Npc) {
+      this.startHr3FarewellSequence();
+    }
+
+    // HR3 farewell done → HR1 arrives
+    if (npcId === "hr3-farewell") {
+      this.dismissHr3AndSpawnHr1();
+    }
+
+    // HR1 medical review done → show disconnect offer with choice
+    if (npcId === "hr1-medical") {
+      const msgs = this.dHr1.disconnectOffer;
+      const audioKeys = this.audioKeysFrom(msgs);
+      this.openForcedDialog("hr1-disconnect", msgs, audioKeys);
+    }
+
+    // HR1 disconnect dialog closed without choosing (shouldn't happen normally, but handle it)
+    if (npcId === "hr1-disconnect" && this.hr1Npc) {
+      const hr1 = this.hr1Npc;
+      this.hr1Npc = null;
+      const exitX = this.getOffscreenLeft();
+      const path: { x: number; y: number }[] = [];
+      for (let x = hr1.tileX - 1; x >= exitX; x--) {
+        path.push({ x, y: hr1.tileY });
+      }
+      this.walkNpcAlongPath(hr1, path, () => {
+        this.removeNpc(hr1);
+      });
+    }
+  }
+
+  /** HR3 says farewell. */
+  private startHr3FarewellSequence() {
+    const prlData = this.cache.json.get("prl-dialogs");
+    const msgs = prlData["hr3-farewell"];
+    this.openForcedDialog("hr3-farewell", msgs);
+  }
+
+  /** HR3 walks away, HR1 walks in and delivers medical review dialog. */
+  private dismissHr3AndSpawnHr1() {
+    this.startCutscene();
+
+    const hr3 = this.npcs.get("hr3");
+    const exitX = this.getOffscreenLeft();
+
+    // HR3 walks offscreen
+    const hr3Done = () => {
+      // Now spawn HR1 from left
+      this.spawnHr1();
+    };
+
+    if (hr3) {
+      const path: { x: number; y: number }[] = [];
+      for (let x = hr3.tileX - 1; x >= exitX; x--) {
+        path.push({ x, y: hr3.tileY });
+      }
+      this.walkNpcAlongPath(hr3, path, () => {
+        this.removeNpc(hr3);
+        hr3Done();
+      });
+    } else {
+      hr3Done();
+    }
+  }
+
+  /** Spawn HR1 from offscreen, walk to player, deliver medical review dialog. */
+  private spawnHr1() {
+    const playerTileX = Math.floor(this.player.x / this.TILE);
+    const playerTileY = Math.floor(this.player.y / this.TILE);
+    const entryX = this.getOffscreenLeft();
+
+    const hr1 = this.spawnNpcAt("hr1-prl", "npc1-down", entryX, playerTileY, this.dHr1.medicalReview);
+    this.hr1Npc = hr1;
+
+    const destX = playerTileX - 1;
+    const path: { x: number; y: number }[] = [];
+    for (let x = entryX + 1; x <= destX; x++) {
+      path.push({ x, y: playerTileY });
+    }
+
+    this.walkNpcAlongPath(hr1, path, () => {
+      hr1.walking = false;
+      this.endCutscene();
+      const audioKeys = this.audioKeysFrom(this.dHr1.medicalReview);
+      this.openForcedDialog("hr1-medical", this.dHr1.medicalReview, audioKeys);
+    });
+  }
+
+  private goToDisconnect() {
+    this.startCutscene();
+    this.stopDialogAudio();
+
+    if (this.isTalking) {
+      this.dialogBg?.destroy();
+      this.dialogText?.destroy();
+      this.dialogHint?.destroy();
+      this.dialogBg = undefined;
+      this.dialogText = undefined;
+      this.dialogHint = undefined;
+      this.choiceTexts.forEach((t) => t.destroy());
+      this.choiceTexts = [];
+      this.destroyArrows();
+      this.isTalking = false;
+    }
+
+    const playerTileX = Math.floor(this.player.x / this.TILE);
+    const playerTileY = Math.floor(this.player.y / this.TILE);
+
+    const excludeIds = this.hr1Npc ? [this.hr1Npc.id] : [];
+    const playerPath = this.buildExitPathRight(playerTileX, playerTileY, excludeIds);
+
+    let done = 0;
+    const checkBothDone = () => {
+      done++;
+      if (done >= 2) {
+        const data = this.getTransitionData();
+        data.fromScene = "PRLScene";
+        EventBus.emit("scene-changed", "DisconnectScene");
+        this.scene.start("DisconnectScene", data);
+      }
+    };
+
+    this.walkPlayerAlongPath(playerPath, checkBothDone);
+
+    if (this.hr1Npc) {
+      const hr1 = this.hr1Npc;
+      const hr1Path = this.buildExitPathRight(hr1.tileX, hr1.tileY, [hr1.id]);
+      this.walkNpcAlongPath(hr1, hr1Path, () => {
+        this.removeNpc(hr1);
+        checkBothDone();
+      });
+    } else {
+      checkBothDone();
     }
   }
 }

@@ -1,0 +1,23 @@
+{
+  "hr1": {
+    "talk": [
+      "La desconexión digital es un derecho reconocido por la Ley Orgánica 3/2018.",
+      "Significa que fuera de tu horario laboral no tienes obligación de responder correos, mensajes ni llamadas de trabajo.",
+      "Es especialmente importante en el teletrabajo, donde la línea entre vida personal y laboral se difumina.",
+      "Algunas pautas para una buena desconexión:",
+      "- Respeta tu horario de trabajo y no envíes mensajes fuera de él.",
+      "- Silencia las notificaciones laborales cuando termines tu jornada.",
+      "- Comunica a tu equipo tus horarios de disponibilidad.",
+      "- Si recibes un mensaje fuera de horario, no te sientas obligado a responder.",
+      "La empresa debe garantizar este derecho y promover su cumplimiento.",
+      "Recuerda: desconectar es cuidar tu salud y tu bienestar."
+    ]
+  },
+  "badges": {
+    "digital-disconnect": {
+      "id": "digital-disconnect",
+      "name": "Desconexión digital",
+      "description": "Has aprendido sobre tu derecho a la desconexión digital"
+    }
+  }
+}

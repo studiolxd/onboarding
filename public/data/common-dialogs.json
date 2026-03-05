@@ -22,6 +22,7 @@
     { "id": "risk-visuales", "name": "Riesgos visuales", "scene": "PRLScene", "requires": ["intro-prl"] },
     { "id": "risk-psicosociales", "name": "Riesgos psicosociales", "scene": "PRLScene", "requires": ["intro-prl"] },
     { "id": "risk-electricos", "name": "Riesgos eléctricos y de cableado", "scene": "PRLScene", "requires": ["intro-prl"] },
-    { "id": "risk-pantallas", "name": "Riesgos del uso prolongado de pantallas", "scene": "PRLScene", "requires": ["intro-prl"] }
+    { "id": "risk-pantallas", "name": "Riesgos del uso prolongado de pantallas", "scene": "PRLScene", "requires": ["intro-prl"] },
+    { "id": "learn-disconnect", "name": "Aprende sobre desconexión digital", "scene": "DisconnectScene" }
   ]
 }

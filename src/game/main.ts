@@ -5,6 +5,7 @@ import { SuviScene } from './scenes/SuviScene';
 import { ITScene } from './scenes/ITScene';
 import { CoffeeScene } from './scenes/CoffeeScene';
 import { PRLScene } from './scenes/PRLScene';
+import { DisconnectScene } from './scenes/DisconnectScene';
 import { MainMenu } from './scenes/MainMenu';
 import { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
@@ -30,6 +31,7 @@ const config: Phaser.Types.Core.GameConfig = {
         ITScene,
         CoffeeScene,
         PRLScene,
+        DisconnectScene,
         GameOver
     ]
 };

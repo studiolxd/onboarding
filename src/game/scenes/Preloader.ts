@@ -62,6 +62,7 @@ export class Preloader extends Scene
         this.load.json("it-dialogs", "data/it-dialogs.json");
         this.load.json("coffee-dialogs", "data/coffee-dialogs.json");
         this.load.json("prl-dialogs", "data/prl-dialogs.json");
+        this.load.json("disconnect-dialogs", "data/disconnect-dialogs.json");
     }
 
     create ()

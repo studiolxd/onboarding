@@ -42,6 +42,7 @@ function GameWithScorm() {
     const [visitedSuvi, setVisitedSuvi] = useState(false);
     const [allHrDone, setAllHrDone] = useState(false);
     const [allItDone, setAllItDone] = useState(false);
+    const [allPrlDone, setAllPrlDone] = useState(false);
     const [taskDefs, setTaskDefs] = useState<GameTask[]>([]);
     const [completedTasks, setCompletedTasks] = useState<string[]>([]);
     const [showSettings, setShowSettings] = useState(false);
@@ -161,6 +162,7 @@ function GameWithScorm() {
                     if (derivedVisitedSuvi) setVisitedSuvi(true);
                     if (derivedVisitedHr1 && derivedVisitedHr2 && derivedVisitedHr3) setAllHrDone(true);
                     if (bb.some(b => b.id === 'data-security')) setAllItDone(true);
+                    if (bb.some(b => b.id === 'safe-work')) setAllPrlDone(true);
                     if (savedState.currentScene) setCurrentScene(savedState.currentScene);
                     // Restaurar badges
                     if (savedState.badges && savedState.badges.length > 0) {
@@ -231,6 +233,8 @@ function GameWithScorm() {
                 if (h1 && h2 && h3) setAllHrDone(true);
                 // Unlock PRL when data-security badge is earned
                 if (newBadges.some(b => b.id === 'data-security')) setAllItDone(true);
+                // Unlock Disconnect when safe-work badge is earned
+                if (newBadges.some(b => b.id === 'safe-work')) setAllPrlDone(true);
             }
         };
 
@@ -491,6 +495,13 @@ function GameWithScorm() {
                         onClick={() => { if (allItDone) { EventBus.emit('navigate-to-scene', 'PRLScene'); setShowNav(false); } }}
                     >
                         PRL{!allItDone ? ' (bloqueado)' : ''}
+                    </button>
+                    <button
+                        className={`nav-map-item${!allPrlDone ? ' nav-map-item--locked' : ''}${currentScene === 'DisconnectScene' ? ' nav-map-item--active' : ''}`}
+                        disabled={!allPrlDone}
+                        onClick={() => { if (allPrlDone) { EventBus.emit('navigate-to-scene', 'DisconnectScene'); setShowNav(false); } }}
+                    >
+                        Desconexión{!allPrlDone ? ' (bloqueado)' : ''}
                     </button>
                 </div>
             )}

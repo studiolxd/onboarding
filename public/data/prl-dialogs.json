@@ -78,6 +78,18 @@
       ]
     }
   },
+  "hr3-farewell": ["Espera aquí, que aún hay más información relevante que debes saber."],
+  "hr1": {
+    "medicalReview": [
+      "Además, cada dos años hay una revisión médica voluntaria que puedes solicitar.",
+      "Te avisaremos por email por si quieres realizarla."
+    ],
+    "disconnectOffer": ["También es importante la desconexión digital. ¿Vamos a un lugar más tranquilo y te la explico?"],
+    "disconnectChoice": {
+      "question": "¿Qué prefieres?",
+      "options": ["Ir a desconexión digital", "Quedarme aquí por ahora"]
+    }
+  },
   "badges": {
     "safe-work": {
       "id": "safe-work",
