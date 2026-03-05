@@ -78,7 +78,7 @@ export class ITScene extends BaseScene {
       },
       () => {
         if (!this.visitedIT) return undefined;
-        return { question: "¿Qué quieres hacer?", options: ["Encender ordenador", "Salir"] };
+        return this.getComputerChoice();
       }
     );
     computer.walking = false;
@@ -305,10 +305,6 @@ export class ITScene extends BaseScene {
 
   protected onChoiceConfirmed(npcId: string, choice: string): boolean {
     if (npcId === "computer") {
-      if (choice === "Encender ordenador") {
-        this.showChoices(this.getComputerChoice());
-        return true;
-      }
       if (choice === "Abrir Nextcloud") {
         EventBus.emit("computer-open-app", "nextcloud");
         return false;
