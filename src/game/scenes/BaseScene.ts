@@ -51,7 +51,7 @@ export abstract class BaseScene extends Scene {
   protected activeChoice: NpcChoice | null = null;
   protected choiceScrollTop = 0;
   protected readonly MAX_VISIBLE_CHOICES = 4;
-  protected readonly CHOICE_LINE_H = 10;
+  protected readonly CHOICE_LINE_H = 14;
   protected arrowUp?: Phaser.GameObjects.Text;
   protected arrowDown?: Phaser.GameObjects.Text;
 
@@ -872,16 +872,17 @@ export abstract class BaseScene extends Scene {
 
     {
       const arrowX = this.dialogBg ? this.dialogBg.x + this.dialogBg.width - 8 : this.dialogText!.x + 80;
+      const arrowPad = 6;
 
       this.arrowUp = this.add
-        .text(arrowX, baseY - 2, "▲", { fontFamily: "monospace", fontSize: "8px", color: "#666666" })
+        .text(arrowX, baseY - arrowPad, "▲", { fontFamily: "monospace", fontSize: "8px", color: "#666666", padding: { top: 2, bottom: 2, left: 2, right: 2 } })
         .setResolution(this.ZOOM).setScrollFactor(0).setDepth(1001)
         .setInteractive({ useHandCursor: true })
         .on("pointerdown", () => { if (this.choiceIndex > 0) this.selectChoice(this.choiceIndex - 1); });
 
       const lastSlotY = baseY + (visibleCount - 1) * this.CHOICE_LINE_H;
       this.arrowDown = this.add
-        .text(arrowX, lastSlotY + this.CHOICE_LINE_H, "▼", { fontFamily: "monospace", fontSize: "8px", color: "#666666" })
+        .text(arrowX, lastSlotY + this.CHOICE_LINE_H + arrowPad, "▼", { fontFamily: "monospace", fontSize: "8px", color: "#666666", padding: { top: 2, bottom: 2, left: 2, right: 2 } })
         .setResolution(this.ZOOM).setScrollFactor(0).setDepth(1001)
         .setInteractive({ useHandCursor: true })
         .on("pointerdown", () => { if (this.choiceIndex < this.activeChoice!.options.length - 1) this.selectChoice(this.choiceIndex + 1); });
@@ -925,9 +926,11 @@ export abstract class BaseScene extends Scene {
     const hudPos = this.screenToHUD(pointer.x, pointer.y);
     for (let slot = 0; slot < this.choiceTexts.length; slot++) {
       const t = this.choiceTexts[slot];
+      const tx = t.x;
       const ty = t.y;
+      const tw = t.width;
       const th = this.CHOICE_LINE_H;
-      if (hudPos.y >= ty && hudPos.y < ty + th) {
+      if (hudPos.x >= tx && hudPos.x <= tx + tw && hudPos.y >= ty && hudPos.y < ty + th) {
         const optIdx = this.choiceScrollTop + slot;
         if (optIdx < this.activeChoice.options.length) {
           this.selectChoice(optIdx);
