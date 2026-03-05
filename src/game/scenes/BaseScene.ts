@@ -637,6 +637,62 @@ export abstract class BaseScene extends Scene {
     walkStep();
   }
 
+  protected walkPlayerAlongPath(path: { x: number; y: number }[], onComplete?: () => void) {
+    if (path.length === 0) { onComplete?.(); return; }
+
+    this.isTalking = true;
+    this.movePath = [];
+    const stepIndex = { value: 0 };
+
+    const walkStep = () => {
+      if (stepIndex.value >= path.length) {
+        this.player.anims.stop();
+        onComplete?.();
+        return;
+      }
+
+      const target = path[stepIndex.value];
+      const cx = Math.floor(this.player.x / this.TILE);
+      const cy = Math.floor(this.player.y / this.TILE);
+      const dx = target.x - cx;
+      const dy = target.y - cy;
+
+      if (dx < 0) { this.player.setFlipX(true); this.player.anims.play("walk-left", true); }
+      else if (dx > 0) { this.player.setFlipX(false); this.player.anims.play("walk-left", true); }
+      else if (dy < 0) { this.player.setFlipX(false); this.player.anims.play("walk-up", true); }
+      else if (dy > 0) { this.player.setFlipX(false); this.player.anims.play("walk-down", true); }
+
+      const destX = target.x * this.TILE + this.TILE / 2;
+      const destY = target.y * this.TILE + this.TILE / 2;
+
+      this.tweens.add({
+        targets: this.player,
+        x: destX, y: destY,
+        duration: this.MOVE_MS,
+        onComplete: () => {
+          this.player.x = destX;
+          this.player.y = destY;
+          stepIndex.value++;
+          walkStep();
+        },
+      });
+    };
+
+    walkStep();
+  }
+
+  protected getOffscreenRight(): number {
+    const cam = this.cameras.main;
+    const visibleRight = cam.midPoint.x + this.scale.width / (2 * this.ZOOM);
+    return Math.min(Math.ceil(visibleRight / this.TILE) + 2, this.map.width - 1);
+  }
+
+  protected getOffscreenLeft(): number {
+    const cam = this.cameras.main;
+    const visibleLeft = cam.midPoint.x - this.scale.width / (2 * this.ZOOM);
+    return Math.max(Math.floor(visibleLeft / this.TILE) - 2, 0);
+  }
+
   // ─── Dialog ───
 
   protected openDialog(npc: NpcData) {

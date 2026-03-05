@@ -14,6 +14,7 @@
       "question": "¿Cómo prefieres que nos dirijamos a ti?",
       "options": ["Masculino", "Femenino", "Neutro"]
     },
-    "afterGender": ["{greeting}", "Te llevo con el equipo de RRHH.", "Ellos te presentarán al equipo y te explicarán cómo trabajamos."]
+    "afterGender": ["{greeting}", "Te llevo con el equipo de RRHH.", "Ellos te presentarán al equipo y te explicarán cómo trabajamos."],
+    "hrIntro": ["Te dejo con el equipo de RRHH.", "¡Que te vaya bien!"]
   }
 }

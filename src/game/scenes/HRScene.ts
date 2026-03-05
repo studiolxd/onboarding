@@ -27,8 +27,10 @@ export class HRScene extends BaseScene {
   }[] = [];
   private roleFunctions: Record<string, { name: string; brief: string; detail: string }[]> = {};
 
-  // Finale
+  // Scene transition
+  private fromScene: string | null = null;
   private finaleTriggered = false;
+  private suviFinaleNpc: import("../types").NpcData | null = null;
 
   constructor() {
     super("HRScene");
@@ -37,6 +39,7 @@ export class HRScene extends BaseScene {
   init(data?: SceneTransitionData) {
     if (data && data.learnerName) {
       this.restoreFromTransitionData(data);
+      this.fromScene = data.fromScene || null;
     }
   }
 
@@ -123,6 +126,53 @@ export class HRScene extends BaseScene {
 
     EventBus.emit("current-scene-ready", this);
     EventBus.emit("request-scorm-data");
+
+    // Entrance animation: player and Suvi walk in from the left
+    if (this.fromScene === "SuviScene" && !this.visitedHr1) {
+      this.playSuviEntrance();
+    }
+  }
+
+  private playSuviEntrance() {
+    const playerTileX = Math.floor(this.player.x / this.TILE);
+    const playerTileY = Math.floor(this.player.y / this.TILE);
+    const entryX = this.getOffscreenLeft();
+
+    // Move player offscreen left
+    this.player.setPosition(entryX * this.TILE + this.TILE / 2, playerTileY * this.TILE + this.TILE / 2);
+
+    // Spawn Suvi offscreen left, one tile above
+    const suviY = playerTileY - 1;
+    const suviDialogs = this.cache.json.get("suvi-dialogs").ncp1;
+    const suvi = this.spawnNpcAt("suvi-escort", "npc1-down", entryX, suviY, suviDialogs.hrIntro);
+
+    // Build paths to walk in
+    const playerPath: { x: number; y: number }[] = [];
+    for (let x = entryX + 1; x <= playerTileX; x++) {
+      playerPath.push({ x, y: playerTileY });
+    }
+    const suviDestX = playerTileX - 1;
+    const suviPath: { x: number; y: number }[] = [];
+    for (let x = entryX + 1; x <= suviDestX; x++) {
+      suviPath.push({ x, y: suviY });
+    }
+    // Walk down to player's row
+    suviPath.push({ x: suviDestX, y: playerTileY });
+
+    let done = 0;
+    const checkBothDone = () => {
+      done++;
+      if (done >= 2) {
+        this.isTalking = false;
+        this.openForcedDialog("suvi-intro", suviDialogs.hrIntro);
+      }
+    };
+
+    this.walkPlayerAlongPath(playerPath, checkBothDone);
+    this.walkNpcAlongPath(suvi, suviPath, () => {
+      suvi.walking = false;
+      checkBothDone();
+    });
   }
 
   // ─── Hook overrides ───
@@ -161,6 +211,17 @@ export class HRScene extends BaseScene {
 
     if (npcId === "hr3") {
       return this.handleHr3Choice(choice);
+    }
+
+    // Suvi finale choice
+    if (npcId === "suvi-finale") {
+      const finaleOpts = this.d.finale.choice.options;
+      if (choice === finaleOpts[0]) { // "Vamos"
+        this.goToIT();
+        return true;
+      }
+      // "Quiero seguir charlando" → dialog closes, onDialogClosed handles Suvi leaving
+      return false;
     }
 
     return false;
@@ -202,13 +263,28 @@ export class HRScene extends BaseScene {
       }
     }
 
-    // Finale check
-    if (npcId === "hr-finale") {
-      const data = this.getTransitionData();
-      data.fromScene = "HRScene";
-      EventBus.emit("scene-changed", "ITScene");
-      this.scene.start("ITScene", data);
-    } else {
+    // Suvi entrance: after intro dialog, Suvi walks away
+    if (npcId === "suvi-intro") {
+      const suvi = this.npcs.get("suvi-escort");
+      if (suvi) {
+        const exitX = this.getOffscreenLeft();
+        const suviPath: { x: number; y: number }[] = [];
+        for (let x = suvi.tileX - 1; x >= exitX; x--) {
+          suviPath.push({ x, y: suvi.tileY });
+        }
+        this.walkNpcAlongPath(suvi, suviPath, () => {
+          this.removeNpc(suvi);
+        });
+      }
+    }
+
+    // Suvi finale: dismissed after "Quiero seguir charlando"
+    if (npcId === "suvi-finale" && this.suviFinaleNpc) {
+      this.dismissSuviFinale();
+    }
+
+    // Finale check (Suvi arrives when all HR done)
+    if (npcId !== "suvi-intro" && npcId !== "suvi-finale") {
       this.checkFinale();
     }
   }
@@ -597,8 +673,81 @@ export class HRScene extends BaseScene {
     if (!this.visitedHr1 || !this.visitedHr2 || !this.visitedHr3) return;
     this.finaleTriggered = true;
 
+    // Spawn Suvi offscreen left and walk her to the player
     this.time.delayedCall(500, () => {
-      this.openForcedDialog("hr-finale", this.d.finale);
+      const entryX = this.getOffscreenLeft();
+      const playerTileX = Math.floor(this.player.x / this.TILE);
+      const playerTileY = Math.floor(this.player.y / this.TILE);
+      const destX = playerTileX - 1;
+      const destY = playerTileY;
+
+      const suviDialogs = this.cache.json.get("suvi-dialogs").ncp1;
+      const suvi = this.spawnNpcAt("suvi-finale", "npc1-down", entryX, destY, suviDialogs.hrIntro);
+      this.suviFinaleNpc = suvi;
+
+      const suviPath: { x: number; y: number }[] = [];
+      for (let x = entryX + 1; x <= destX; x++) {
+        suviPath.push({ x, y: destY });
+      }
+
+      this.walkNpcAlongPath(suvi, suviPath, () => {
+        suvi.walking = false;
+        suvi.choice = this.d.finale.choice;
+        this.openForcedDialog("suvi-finale", this.resolveMessages(this.d.finale.greeting));
+      });
+    });
+  }
+
+  private goToIT() {
+    const exitX = this.getOffscreenRight();
+    const playerTileX = Math.floor(this.player.x / this.TILE);
+    const playerTileY = Math.floor(this.player.y / this.TILE);
+
+    const playerPath: { x: number; y: number }[] = [];
+    for (let x = playerTileX + 1; x <= exitX; x++) {
+      playerPath.push({ x, y: playerTileY });
+    }
+
+    let done = 0;
+    const checkBothDone = () => {
+      done++;
+      if (done >= 2) {
+        const data = this.getTransitionData();
+        data.fromScene = "HRScene";
+        EventBus.emit("scene-changed", "ITScene");
+        this.scene.start("ITScene", data);
+      }
+    };
+
+    this.walkPlayerAlongPath(playerPath, checkBothDone);
+
+    if (this.suviFinaleNpc) {
+      const suvi = this.suviFinaleNpc;
+      const suviPath: { x: number; y: number }[] = [];
+      for (let x = suvi.tileX + 1; x <= exitX; x++) {
+        suviPath.push({ x, y: suvi.tileY });
+      }
+      this.walkNpcAlongPath(suvi, suviPath, () => {
+        this.removeNpc(suvi);
+        checkBothDone();
+      });
+    } else {
+      checkBothDone();
+    }
+  }
+
+  private dismissSuviFinale() {
+    if (!this.suviFinaleNpc) return;
+    const suvi = this.suviFinaleNpc;
+    this.suviFinaleNpc = null;
+
+    const exitX = this.getOffscreenLeft();
+    const suviPath: { x: number; y: number }[] = [];
+    for (let x = suvi.tileX - 1; x >= exitX; x--) {
+      suviPath.push({ x, y: suvi.tileY });
+    }
+    this.walkNpcAlongPath(suvi, suviPath, () => {
+      this.removeNpc(suvi);
     });
   }
 }

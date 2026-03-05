@@ -112,9 +112,43 @@ export class SuviScene extends BaseScene {
   }
 
   private goToHR() {
-    const data = this.getTransitionData();
-    data.fromScene = "SuviScene";
-    EventBus.emit("scene-changed", "HRScene");
-    this.scene.start("HRScene", data);
+    const suvi = this.npcs.get("ncp1");
+    const exitX = this.getOffscreenRight();
+    const playerTileX = Math.floor(this.player.x / this.TILE);
+    const playerTileY = Math.floor(this.player.y / this.TILE);
+
+    // Build straight horizontal paths to the right
+    const playerPath: { x: number; y: number }[] = [];
+    for (let x = playerTileX + 1; x <= exitX; x++) {
+      playerPath.push({ x, y: playerTileY });
+    }
+
+    let done = 0;
+    const checkBothDone = () => {
+      done++;
+      if (done >= 2) {
+        const data = this.getTransitionData();
+        data.fromScene = "SuviScene";
+        EventBus.emit("scene-changed", "HRScene");
+        this.scene.start("HRScene", data);
+      }
+    };
+
+    // Walk player to the right
+    this.walkPlayerAlongPath(playerPath, checkBothDone);
+
+    // Walk Suvi to the right
+    if (suvi) {
+      const suviPath: { x: number; y: number }[] = [];
+      for (let x = suvi.tileX + 1; x <= exitX; x++) {
+        suviPath.push({ x, y: suvi.tileY });
+      }
+      this.walkNpcAlongPath(suvi, suviPath, () => {
+        this.removeNpc(suvi);
+        checkBothDone();
+      });
+    } else {
+      checkBothDone();
+    }
   }
 }

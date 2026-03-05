@@ -178,9 +178,11 @@
       }
     ]
   },
-  "finale": [
-    "¡{name}! Ya estás listo/a.",
-    "Has conocido al equipo, sabes cómo trabajamos y conoces tu rol.",
-    "Ahora toca ir a IT para terminar tu incorporación."
-  ]
+  "finale": {
+    "greeting": ["{greeting}", "Ya has conocido a todo el equipo y tus funciones."],
+    "choice": {
+      "question": "¿Vamos a conocer a los de IT?",
+      "options": ["Vamos", "Quiero seguir charlando"]
+    }
+  }
 }
