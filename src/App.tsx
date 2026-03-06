@@ -92,7 +92,7 @@ function GameWithScorm() {
             }
             if (!t.requires || t.requires.every(r => completed.includes(r))) {
                 announcedTasks.current.add(t.id);
-                enqueueToast('task-assigned', t.name);
+                enqueueToast('task-assigned', '');
             }
         }
     }, [enqueueToast]);
@@ -318,7 +318,7 @@ function GameWithScorm() {
             // Toast for completed task (outside state updater to avoid StrictMode double-fire)
             const defs = taskDefsRef.current;
             const task = defs.find(t => t.id === taskId);
-            if (task) enqueueToast('task-completed', task.name);
+            if (task) enqueueToast('task-completed', '');
 
             // Check for newly unlocked tasks in current scene only
             const completed = [...(savedState.completedTasks ?? []), taskId];
@@ -329,7 +329,7 @@ function GameWithScorm() {
                 if (completed.includes(t.id)) continue;
                 if (!t.requires || t.requires.every(r => completed.includes(r))) {
                     announcedTasks.current.add(t.id);
-                    enqueueToast('task-assigned', t.name);
+                    enqueueToast('task-assigned', '');
                 }
             }
         };
@@ -429,11 +429,11 @@ function GameWithScorm() {
         }
     };
 
-    const toastConfig: Record<ToastType, { icon: string; className: string }> = {
-        'badge-earned': { icon: '\uD83C\uDFC6', className: 'toast toast--badge-earned' },
-        'badge-lost':   { icon: '\u2716',       className: 'toast toast--badge-lost' },
-        'task-completed': { icon: '\u2713',      className: 'toast toast--task-completed' },
-        'task-assigned':  { icon: '\u25CB',      className: 'toast toast--task-assigned' },
+    const toastConfig: Record<ToastType, { icon: string; className: string; label: string }> = {
+        'badge-earned': { icon: '\uD83C\uDFC6', className: 'toast toast--badge-earned', label: '\u00A1Has conseguido una nueva insignia!' },
+        'badge-lost':   { icon: '\u2716',       className: 'toast toast--badge-lost', label: 'Insignia perdida' },
+        'task-completed': { icon: '\u2713',      className: 'toast toast--task-completed', label: 'Tarea completada' },
+        'task-assigned':  { icon: '\u25CB',      className: 'toast toast--task-assigned', label: 'Tienes una nueva tarea' },
     };
 
     return (
@@ -601,7 +601,8 @@ function GameWithScorm() {
                 const cfg = toastConfig[activeToast.type];
                 return (
                     <div key={activeToast.key} className={cfg.className}>
-                        {cfg.icon} {activeToast.message}
+                        <div>{cfg.icon} {cfg.label}</div>
+                        {activeToast.message && <div className="toast-detail">{activeToast.message}</div>}
                     </div>
                 );
             })()}
