@@ -12,9 +12,9 @@
     },
     "gender": {
       "question": "¿Cómo prefieres que nos dirijamos a ti?",
-      "options": ["Masculino (¡bienvenido!)", "Femenino (¡bienvenida!)", "Neutro (¡te damos la bienvenida!)"]
+      "options": ["Masculino (bienvenido)", "Femenino (bienvenida)", "Neutro (te damos la bienvenida)"]
     },
-    "afterGender": ["{greeting}", "Te llevo con el equipo de People Experience.", "Te presentarán al equipo y te contarán cómo trabajamos."],
+    "afterGender": ["{greeting}", "Vamos a People Experience.", "Allí te contarán cómo trabajamos y te presentarán al resto del equipo."],
     "hrIntro": ["Te dejo con el equipo de People Experience.", "¡Que te vaya bien!"],
     "itIntro": ["Aquí está el equipo de IT.", "Ellos te ayudarán con las herramientas y accesos.", "¡Te dejo con ellos!"],
     "prlIntro": ["Para trabajar seguro es importante que hagas la formación en Prevención de Riesgos Laborales.", "Aquí está la responsable de PRL, ella te guiará.", "¡Ánimo!"],
