@@ -1,20 +1,20 @@
 {
   "ncp1": {
-    "firstVisit": ["¡Hola! Soy Suvi, el director de Studio LXD."],
-    "returnVisit": ["{greeting}", "¿A dónde quieres ir?"],
+    "firstVisit": ["¡Hola! Soy Suvi, responsable de Studio LXD y voy a acompañarte durante tu bienvenida."],
+    "returnVisit": ["{greeting}"],
     "firstChoice": {
-      "question": "¿Te llamo {scormName} o prefieres otro nombre?",
-      "options": ["Llámame {scormName}", "Prefiero otro nombre"]
+      "question": "¿Te llamamos {scormName} o prefieres otro nombre?",
+      "options": ["Sí, {scormName}", "Prefiero otro nombre"]
     },
     "returnChoice": {
-      "question": "¿Qué quieres hacer?",
-      "options": ["Ir a RRHH", "Quedarse aquí"]
+      "question": "¿Vamos con el equipo de recursos humanos?",
+      "options": ["Sí, vamos", "Me quedaré aquí un rato"]
     },
     "gender": {
       "question": "¿Cómo prefieres que nos dirijamos a ti?",
-      "options": ["Masculino", "Femenino", "Neutro"]
+      "options": ["Masculino (bienvenido)", "Femenino (bienvenida)", "Neutro (te damos la bienvenida)"]
     },
-    "afterGender": ["{greeting}", "Te llevo con el equipo de RRHH.", "Ellos te presentarán al equipo y te explicarán cómo trabajamos."],
+    "afterGender": ["{greeting}", "Te llevo con el equipo de RRHH.", "Te presentarán al equipo y te contarán cómo trabajamos."],
     "hrIntro": ["Te dejo con el equipo de RRHH.", "¡Que te vaya bien!"],
     "itIntro": ["Aquí está el equipo de IT.", "Ellos te ayudarán con las herramientas y accesos.", "¡Te dejo con ellos!"],
     "prlIntro": ["Para trabajar seguro es importante que hagas la formación en Prevención de Riesgos Laborales.", "Aquí está la responsable de PRL, ella te guiará.", "¡Ánimo!"],

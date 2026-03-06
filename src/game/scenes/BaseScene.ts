@@ -93,8 +93,10 @@ export abstract class BaseScene extends Scene {
     );
   }
 
+  protected static readonly FALLBACK_NAME = "visitante";
+
   protected getName(): string {
-    return this.displayName || this.learnerName || "aventurero";
+    return this.displayName || this.learnerName || BaseScene.FALLBACK_NAME;
   }
 
   protected getGreeting(): string {
@@ -1007,7 +1009,7 @@ export abstract class BaseScene extends Scene {
   protected resolveText(text: string): string {
     return text
       .replace(/\{name\}/g, this.getName())
-      .replace(/\{scormName\}/g, this.learnerName || "aventurero")
+      .replace(/\{scormName\}/g, this.learnerName || BaseScene.FALLBACK_NAME)
       .replace(/\{greeting\}/g, this.getGreeting())
       .replace(/\{role\}/g, this.learnerRole || "");
   }

@@ -59,7 +59,7 @@ export class SuviScene extends BaseScene {
 
     const keepName = this.resolveText(this.d.firstChoice.options[0]);
     if (choice === keepName) {
-      this.displayName = this.learnerName || "aventurero";
+      this.displayName = this.learnerName || BaseScene.FALLBACK_NAME;
       EventBus.emit("name-changed", this.displayName);
       this.askGender();
       return true;
