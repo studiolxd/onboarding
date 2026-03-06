@@ -1,6 +1,6 @@
 {
   "ncp1": {
-    "firstVisit": ["¡Hola! Soy Suvi, el director de Studio LXD.", "¡Te damos la bienvenida!"],
+    "firstVisit": ["¡Hola! Soy Suvi, el director de Studio LXD."],
     "returnVisit": ["{greeting}", "¿A dónde quieres ir?"],
     "firstChoice": {
       "question": "¿Te llamo {scormName} o prefieres otro nombre?",
