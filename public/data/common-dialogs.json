@@ -7,7 +7,7 @@
   },
   "choiceHint": "Toca una opción",
   "tasks": [
-    { "id": "meet-director", "name": "Preséntate al director", "scene": "SuviScene" },
+    { "id": "meet-director", "name": "Preséntate", "scene": "SuviScene" },
     { "id": "meet-team", "name": "Conoce al equipo", "scene": "HRScene" },
     { "id": "learn-culture", "name": "Conoce nuestra forma de trabajar", "scene": "HRScene" },
     { "id": "learn-role", "name": "Descubre las funciones de tu rol", "scene": "HRScene", "requires": ["meet-team", "learn-culture"] },
