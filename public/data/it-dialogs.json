@@ -18,13 +18,13 @@
       "Utilizamos 3 herramientas internas principalmente:",
       "El correo electrónico, para la comunicación del día a día.",
       "Nextcloud, en workspace.studiolxd.com, para archivos y colaboración.",
-      "Y Frappe, en hr.studiolxd.com, para la gestión de RRHH."
+      "Y Frappe, en hr.studiolxd.com, para la gestión de People Experience."
     ],
     "returnVisit": ["¡Hola de nuevo, {name}!", "Ahora dirígete al ordenador para probar las herramientas."]
   },
   "hr2": {
     "fichaIntro": [
-      "¡Hola, {name}! Soy de RRHH.",
+      "¡Hola, {name}! Soy de People Experience.",
       "Es importante fichar la jornada laboral.",
       "En Frappe puedes registrar tu entrada y salida cada día."
     ],

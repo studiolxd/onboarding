@@ -56,7 +56,7 @@
   },
   "hr1": {
     "firstVisit": [
-      "¡Hola, {name}! Soy de RRHH.",
+      "¡Hola, {name}! Soy de People Experience.",
       "Voy a presentarte al equipo. ¡Espera un momento!"
     ],
     "teamOnScreen": ["¡Saluda al equipo y conoce qué es lo que hacen!"],
@@ -67,8 +67,8 @@
     "someTeamOption": "Todos los disponibles",
     "welcome": {
       "messages": ["¡Ya conoces a todo el equipo!", "¡Ya eres miembro del equipo, {name}!"],
-      "redirectHr2": "Ahora ve a conocer cómo trabajamos. Habla con la otra persona de RRHH.",
-      "redirectHr3": "Ahora ve a hablar con RRHH para conocer tu rol y funciones."
+      "redirectHr2": "Ahora ve a conocer cómo trabajamos. Habla con la otra persona de People Experience.",
+      "redirectHr3": "Ahora ve a hablar con People Experience para conocer tu rol y funciones."
     },
     "badge": {
       "id": "team-member",
@@ -78,14 +78,14 @@
   },
   "hr2": {
     "firstVisit": [
-      "¡Hola, {name}! Soy de RRHH también.",
+      "¡Hola, {name}! Soy de People Experience también.",
       "Te cuento cómo trabajamos aquí.",
       "Trabajamos en remoto la mayor parte del tiempo.",
       "Nos organizamos por proyectos, cada uno con su equipo.",
       "Y tenemos horarios flexibles: lo importante son los resultados."
     ],
-    "redirectHr1": "Ahora ve a conocer al equipo. Habla con la otra persona de RRHH.",
-    "redirectHr3": "Ahora ve a hablar con RRHH para conocer tu rol.",
+    "redirectHr1": "Ahora ve a conocer al equipo. Habla con la otra persona de People Experience.",
+    "redirectHr3": "Ahora ve a hablar con People Experience para conocer tu rol.",
     "returnVisit": ["¡Hola de nuevo! ¿Quieres saber algo más?"],
     "choice": {
       "question": "¿Qué quieres saber?",
@@ -111,8 +111,8 @@
   },
   "hr3": {
     "blockedBoth": ["Primero ve a conocer al equipo y cómo trabajamos."],
-    "blockedHr1": ["Primero ve a conocer al equipo. Habla con la otra persona de RRHH."],
-    "blockedHr2": ["Primero ve a conocer cómo trabajamos. Habla con la otra persona de RRHH."],
+    "blockedHr1": ["Primero ve a conocer al equipo. Habla con la otra persona de People Experience."],
+    "blockedHr2": ["Primero ve a conocer cómo trabajamos. Habla con la otra persona de People Experience."],
     "firstVisit": ["¡Hola, {name}!", "Antes de seguir, necesito saber algo..."],
     "withRole": ["¡Ey, {name}! Tu rol actual es: {role}.", "¿Necesitas algo?"],
     "roleChoice": {
