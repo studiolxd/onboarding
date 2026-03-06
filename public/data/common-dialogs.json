@@ -1,8 +1,8 @@
 {
   "greeting": {
-    "m": "Bienvenido, {name}",
-    "f": "Bienvenida, {name}",
-    "n": "Te damos la bienvenida, {name}",
+    "m": "¡Bienvenido, {name}!",
+    "f": "¡Bienvenida, {name}!",
+    "n": "¡Te damos la bienvenida, {name}!",
     "default": "¡Hola, {name}!"
   },
   "choiceHint": "Toca una opción",

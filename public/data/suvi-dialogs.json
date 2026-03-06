@@ -12,7 +12,7 @@
     },
     "gender": {
       "question": "¿Cómo prefieres que nos dirijamos a ti?",
-      "options": ["Masculino (bienvenido)", "Femenino (bienvenida)", "Neutro (te damos la bienvenida)"]
+      "options": ["Masculino (¡bienvenido!)", "Femenino (¡bienvenida!)", "Neutro (¡te damos la bienvenida!)"]
     },
     "afterGender": ["{greeting}", "Te llevo con el equipo de People Experience.", "Te presentarán al equipo y te contarán cómo trabajamos."],
     "hrIntro": ["Te dejo con el equipo de People Experience.", "¡Que te vaya bien!"],

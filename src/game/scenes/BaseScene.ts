@@ -1059,10 +1059,12 @@ export abstract class BaseScene extends Scene {
     this.choiceTexts = [];
     for (let i = 0; i < visibleCount; i++) {
       const slot = i;
+      const wrapWidth = this.dialogBg ? this.dialogBg.width - 16 : 200;
       const text = this.add
         .text(this.dialogText!.x, baseY + i * this.CHOICE_LINE_H, "", {
           fontFamily: "monospace", fontSize: "7px", color: "#cccccc",
           padding: { top: 3, bottom: 3 },
+          wordWrap: { width: wrapWidth },
         })
         .setResolution(this.ZOOM).setScrollFactor(0).setDepth(1001)
         .setInteractive({ useHandCursor: true })
@@ -1107,6 +1109,8 @@ export abstract class BaseScene extends Scene {
     if (index < this.choiceScrollTop) this.choiceScrollTop = index;
     else if (index >= this.choiceScrollTop + maxVis) this.choiceScrollTop = index - maxVis + 1;
 
+    const baseY = this.dialogText ? this.dialogText.y + this.dialogText.height + 4 : 0;
+    let curY = baseY;
     for (let slot = 0; slot < this.choiceTexts.length; slot++) {
       const optIdx = this.choiceScrollTop + slot;
       if (optIdx >= total) { this.choiceTexts[slot].setText(""); continue; }
@@ -1115,10 +1119,15 @@ export abstract class BaseScene extends Scene {
       const color = optIdx === index ? "#ffffff" : "#888888";
       this.choiceTexts[slot].setText(prefix + num + opts[optIdx]);
       this.choiceTexts[slot].setColor(color);
+      this.choiceTexts[slot].setY(curY);
+      curY += this.choiceTexts[slot].height + 2;
     }
 
     if (this.arrowUp) this.arrowUp.setColor(index > 0 ? "#ffffff" : "#444444");
-    if (this.arrowDown) this.arrowDown.setColor(index < total - 1 ? "#ffffff" : "#444444");
+    if (this.arrowDown) {
+      this.arrowDown.setColor(index < total - 1 ? "#ffffff" : "#444444");
+      this.arrowDown.setY(curY + 4);
+    }
   }
 
   protected destroyArrows() {
