@@ -83,6 +83,7 @@ function GameWithScorm() {
 
     /** Announce available (not yet announced) tasks for a given scene. */
     const announceTasksForScene = useCallback((scene: string, defs: GameTask[], completed: string[]) => {
+        let newCount = 0;
         for (const t of defs) {
             if (t.scene !== scene) continue;
             if (announcedTasks.current.has(t.id)) continue;
@@ -92,8 +93,11 @@ function GameWithScorm() {
             }
             if (!t.requires || t.requires.every(r => completed.includes(r))) {
                 announcedTasks.current.add(t.id);
-                enqueueToast('task-assigned', '');
+                newCount++;
             }
+        }
+        if (newCount > 0) {
+            enqueueToast('task-assigned', newCount > 1 ? 'plural' : '');
         }
     }, [enqueueToast]);
 
@@ -323,14 +327,18 @@ function GameWithScorm() {
             // Check for newly unlocked tasks in current scene only
             const completed = [...(savedState.completedTasks ?? []), taskId];
             const scene = savedState.currentScene ?? '';
+            let newCount = 0;
             for (const t of defs) {
                 if (t.scene !== scene) continue;
                 if (announcedTasks.current.has(t.id)) continue;
                 if (completed.includes(t.id)) continue;
                 if (!t.requires || t.requires.every(r => completed.includes(r))) {
                     announcedTasks.current.add(t.id);
-                    enqueueToast('task-assigned', '');
+                    newCount++;
                 }
+            }
+            if (newCount > 0) {
+                enqueueToast('task-assigned', newCount > 1 ? 'plural' : '');
             }
         };
 
@@ -433,7 +441,7 @@ function GameWithScorm() {
         'badge-earned': { icon: '\uD83C\uDFC6', className: 'toast toast--badge-earned', label: '\u00A1Has conseguido una nueva insignia!' },
         'badge-lost':   { icon: '\u2716',       className: 'toast toast--badge-lost', label: 'Insignia perdida' },
         'task-completed': { icon: '\u2713',      className: 'toast toast--task-completed', label: 'Tarea completada' },
-        'task-assigned':  { icon: '\u25CB',      className: 'toast toast--task-assigned', label: 'Tienes una nueva tarea' },
+        'task-assigned':  { icon: '',             className: 'toast toast--task-assigned', label: 'Tienes una nueva tarea' },
     };
 
     return (
@@ -601,8 +609,8 @@ function GameWithScorm() {
                 const cfg = toastConfig[activeToast.type];
                 return (
                     <div key={activeToast.key} className={cfg.className}>
-                        <div>{cfg.icon} {cfg.label}</div>
-                        {activeToast.message && <div className="toast-detail">{activeToast.message}</div>}
+                        <div>{cfg.icon}{cfg.icon && ' '}{activeToast.type === 'task-assigned' && activeToast.message === 'plural' ? 'Tienes nuevas tareas' : cfg.label}</div>
+                        {activeToast.message && activeToast.message !== 'plural' && <div className="toast-detail">{activeToast.message}</div>}
                     </div>
                 );
             })()}
